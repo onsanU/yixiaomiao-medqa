@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>医小喵 · 健康智能问答助手</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: radial-gradient(1000px 500px at 50% -10%, #12325a 0%, #0b1220 50%, #080d18 100%);
+    color: #e2e8f0;
+    font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  /* ===== 顶部栏 ===== */
+  .header {
+    padding: 14px 22px;
+    display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid #1e2a4a;
+    background: #0d1526cc;
+    backdrop-filter: blur(8px);
+    z-index: 5;
+  }
+  .header .logo { font-size: 30px; animation: float 2.6s ease-in-out infinite; }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  .header .title { font-size: 20px; font-weight: 800; }
+  .header .title span { color: #22d3ee; }
+  .header .user-chip {
+    font-size: 12.5px; color: #f9a8d4;
+    background: #f472b61a; border: 1px solid #f472b644;
+    padding: 5px 13px; border-radius: 999px; cursor: pointer;
+    transition: all .2s; margin-left: auto;
+  }
+  .header .user-chip:hover { border-color: #f472b6; }
+  .header .status {
+    font-size: 12px; color: #34d399;
+    background: #34d3991a; border: 1px solid #34d39933;
+    padding: 4px 12px; border-radius: 999px;
+  }
+  .header .status::before { content: "● "; }
+  .header .hist-btn {
+    background: #151d33; color: #94a3b8;
+    border: 1px solid #243353; border-radius: 10px;
+    padding: 7px 14px; font-size: 13px; cursor: pointer;
+    transition: all .2s;
+  }
+  .header .hist-btn:hover { color: #67e8f9; border-color: #22d3ee88; }
+  /* ===== 历史面板 ===== */
+  .hist-panel {
+    position: fixed; top: 0; right: -360px; width: 340px; height: 100vh;
+    background: #0d1526f2; backdrop-filter: blur(10px);
+    border-left: 1px solid #1e2a4a;
+    transition: right .3s ease; z-index: 10;
+    display: flex; flex-direction: column;
+  }
+  .hist-panel.open { right: 0; }
+  .hist-panel .hp-head {
+    padding: 16px 18px; display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid #1e2a4a; font-weight: 700;
+  }
+  .hist-panel .hp-head .close {
+    margin-left: auto; cursor: pointer; color: #64748b; font-size: 18px;
+  }
+  .hist-panel .hp-list { flex: 1; overflow-y: auto; padding: 10px; }
+  .hist-item {
+    background: #131b30; border: 1px solid #1e2a4a; border-radius: 10px;
+    padding: 10px 12px; margin-bottom: 8px; cursor: pointer;
+    transition: all .2s;
+  }
+  .hist-item:hover { border-color: #22d3ee66; transform: translateX(-2px); }
+  .hist-item .q { font-size: 13px; color: #e2e8f0; margin-bottom: 4px; }
+  .hist-item .a { font-size: 12px; color: #64748b; line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .hist-item .t { font-size: 10.5px; color: #3b4a6b; margin-top: 5px; }
+  .hist-empty { text-align: center; color: #475569; padding: 30px 0; font-size: 13px; }
+  .hp-clear {
+    margin: 0 16px 16px; padding: 9px; border-radius: 10px;
+    background: #f43f5e1a; border: 1px solid #f43f5e44; color: #fb7185;
+    cursor: pointer; font-size: 13px; transition: all .2s;
+  }
+  .hp-clear:hover { background: #f43f5e33; }
+  /* ===== 今日贴士 ===== */
+  .tip-bar {
+    margin: 10px 22px 0; padding: 10px 16px;
+    background: linear-gradient(90deg, #f472b614, #22d3ee0d);
+    border: 1px solid #f472b633; border-radius: 12px;
+    font-size: 12.5px; color: #94a3b8; line-height: 1.6;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .tip-bar .t-icon { font-size: 18px; }
+  .tip-bar b { color: #f9a8d4; }
+  /* ===== 主题卡片 ===== */
+  .topic-section { padding: 12px 22px 2px; }
+  .topic-section .t-label {
+    font-size: 12px; color: #64748b; margin-bottom: 8px; letter-spacing: 1px;
+  }
+  .topic-grid {
+    display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px;
+    scrollbar-width: thin; scrollbar-color: #243353 transparent;
+  }
+  .topic-card {
+    flex-shrink: 0; background: #121a2e;
+    border: 1px solid #1e2a4a; border-radius: 12px;
+    padding: 9px 14px; cursor: pointer; text-align: center;
+    transition: all .2s; min-width: 76px;
+  }
+  .topic-card:hover { border-color: #22d3ee88; transform: translateY(-2px); background: #16203a; }
+  .topic-card .tc-icon { font-size: 20px; display: block; margin-bottom: 3px; }
+  .topic-card .tc-name { font-size: 11.5px; color: #cbd5e1; }
+  /* ===== 快捷问题 ===== */
+  .quick {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    padding: 6px 22px 4px;
+  }
+  .quick button {
+    background: #151d33; color: #94a3b8;
+    border: 1px solid #243353; border-radius: 999px;
+    padding: 6px 14px; font-size: 12.5px; cursor: pointer;
+    transition: all .2s;
+  }
+  .quick button:hover {
+    color: #67e8f9; border-color: #22d3ee88; transform: translateY(-1px);
+  }
+  /* ===== 引导区收起动画 ===== */
+  .guide-area {
+    transition: max-height .4s ease, opacity .3s ease;
+    max-height: 210px; opacity: 1; overflow: hidden;
+  }
+  .guide-area.collapsed {
+    max-height: 0; opacity: 0;
+  }
+  /* ===== 聊天区 ===== */
+  .chat {
+    flex: 1; overflow-y: auto;
+    padding: 18px 22px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .msg { display: flex; gap: 10px; max-width: 82%; animation: pop .25s ease; }
+  @keyframes pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .msg .avatar {
+    width: 34px; height: 34px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 19px; flex-shrink: 0;
+  }
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .msg.user .avatar { background: linear-gradient(135deg, #22d3ee, #38bdf8); }
+  .msg.bot .avatar { background: linear-gradient(135deg, #f472b6, #ec4899); }
+  .msg .bubble {
+    padding: 11px 15px; border-radius: 14px;
+    font-size: 14px; line-height: 1.75;
+    border: 1px solid;
+  }
+  .msg.user .bubble {
+    background: linear-gradient(135deg, #0e7490, #0369a1);
+    border-color: #22d3ee55;
+    border-top-right-radius: 4px;
+  }
+  .msg.bot .bubble {
+    background: #141c30;
+    border-color: #243353;
+    border-top-left-radius: 4px;
+    white-space: pre-wrap;
+  }
+  .msg.bot .sources { font-size: 11px; color: #64748b; margin-top: 6px; }
+  .msg.bot .sources b { color: #22d3ee; font-weight: 600; }
+  .msg.bot .copy-btn {
+    font-size: 11px; color: #64748b; cursor: pointer; margin-top: 5px;
+    background: none; border: none; padding: 2px 0;
+    transition: color .2s;
+  }
+  .msg.bot .copy-btn:hover { color: #22d3ee; }
+  .typing { display: flex; gap: 4px; padding: 4px 2px; }
+  .typing span {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #f472b6; animation: blink 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: .2s; }
+  .typing span:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%,80%,100% { opacity: .2; } 40% { opacity: 1; } }
+  .stream-cursor::after {
+    content: "▌"; color: #22d3ee; animation: blink 0.9s infinite;
+  }
+  /* ===== 输入区 ===== */
+  .input-bar {
+    padding: 14px 22px 18px;
+    border-top: 1px solid #1e2a4a;
+    background: #0d1526cc;
+    display: flex; gap: 10px; align-items: center;
+  }
+  .input-bar input {
+    flex: 1; background: #111a2e;
+    border: 1px solid #243353; border-radius: 12px;
+    padding: 12px 16px; color: #e2e8f0; font-size: 14px;
+    outline: none; transition: border .2s;
+  }
+  .input-bar input:focus { border-color: #22d3ee88; }
+  .input-bar input::placeholder { color: #475569; }
+  .input-bar button {
+    background: linear-gradient(135deg, #22d3ee, #38bdf8);
+    color: #06222e; border: none; border-radius: 12px;
+    padding: 12px 22px; font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: all .2s;
+  }
+  .input-bar button:hover { transform: translateY(-1px); box-shadow: 0 6px 18px -6px #22d3ee88; }
+  .input-bar button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  .input-bar .reset-btn {
+    background: #151d33; color: #94a3b8; border: 1px solid #243353;
+    border-radius: 12px; padding: 12px 14px; font-size: 13px;
+    cursor: pointer; white-space: nowrap; display: none;
+  }
+  .welcome { text-align: center; color: #64748b; margin: auto; line-height: 2; }
+  .welcome .big { font-size: 46px; display: block; margin-bottom: 8px; }
+  .welcome h2 { color: #e2e8f0; font-size: 20px; margin-bottom: 6px; }
+  .welcome p { font-size: 13px; }
+  .welcome .topics {
+    margin-top: 10px; display: inline-flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  }
+  .welcome .topics button {
+    background: #f472b61a; color: #f9a8d4;
+    border: 1px solid #f472b644; border-radius: 999px;
+    padding: 5px 14px; font-size: 12px; cursor: pointer; transition: all .2s;
+  }
+  .welcome .topics button:hover { border-color: #f472b6; transform: translateY(-1px); }
+  /* ===== 昵称弹窗 ===== */
+  .modal-mask {
+    position: fixed; inset: 0; background: #000000aa;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; backdrop-filter: blur(4px);
+  }
+  .modal {
+    background: linear-gradient(160deg, #16203a, #10162a);
+    border: 1px solid #22d3ee44; border-radius: 18px;
+    padding: 30px 34px; width: 340px; text-align: center;
+    animation: pop .3s ease;
+  }
+  .modal .m-cat { font-size: 44px; display: block; margin-bottom: 8px; }
+  .modal h3 { font-size: 18px; margin-bottom: 6px; color: #f1f5f9; }
+  .modal p { font-size: 12.5px; color: #64748b; margin-bottom: 18px; }
+  .modal input {
+    width: 100%; background: #111a2e;
+    border: 1px solid #243353; border-radius: 10px;
+    padding: 11px 14px; color: #e2e8f0; font-size: 14px;
+    outline: none; margin-bottom: 14px; text-align: center;
+  }
+  .modal input:focus { border-color: #22d3ee88; }
+  .modal button {
+    width: 100%; background: linear-gradient(135deg, #22d3ee, #38bdf8);
+    color: #06222e; border: none; border-radius: 10px;
+    padding: 11px; font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: all .2s;
+  }
+  .modal button:hover { box-shadow: 0 6px 18px -6px #22d3ee88; }
+  @media (max-width: 600px) {
+    .msg { max-width: 92%; }
+    .hist-panel { width: 85%; right: -85%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">🐱</div>
+  <div class="title">医小喵 <span>健康智能问答</span></div>
+  <span class="user-chip" id="userChip" onclick="switchUser()">🧑 游客</span>
+  <button class="hist-btn" onclick="toggleHist()">📜 历史</button>
+  <div class="status">在线</div>
+</div>
+
+<div class="tip-bar" id="tipBar" style="display:none">
+  <span class="t-icon">💡</span>
+  <span id="tipText"></span>
+</div>
+
+<!-- 引导区（主题卡片 + 快捷问题，随滚动收起/展开） -->
+<div class="guide-area" id="guideArea">
+  <div class="topic-section">
+    <div class="t-label">🏥 健康知识库 · 点击主题即可提问</div>
+    <div class="topic-grid" id="topicGrid"></div>
+  </div>
+
+  <div class="quick">
+    <button onclick="send('感冒了嗓子疼怎么办？')">🤧 感冒嗓子疼</button>
+    <button onclick="send('血压高平时要注意什么？')">🩺 血压高注意啥</button>
+    <button onclick="send('最近总是失眠怎么办？')">😴 失眠怎么办</button>
+    <button onclick="send('崴了脚怎么处理？')">🦶 崴脚处理</button>
+  </div>
+</div>
+
+<div class="chat" id="chat">
+  <div class="welcome" id="welcome">
+    <span class="big">🐱</span>
+    <h2 id="welcomeTitle">你好呀，我是医小喵！</h2>
+    <p>基于本地大模型 + 医疗知识库的健康问答助手<br>
+    点上面的主题卡片或直接提问，问问我关于感冒、失眠、高血压……的健康问题吧喵~<br>
+    <span style="font-size:11px;color:#475569">（本助手仅供参考，不能替代专业医生诊断喵）</span></p>
+    <div class="topics" id="topics"></div>
+  </div>
+</div>
+
+<div class="input-bar">
+  <button class="reset-btn" id="resetBtn" onclick="resetChat()" title="结束当前对话，开始新对话">🔄 新对话</button>
+  <input id="input" type="text" placeholder="输入你的健康问题，回车发送喵~"
+         onkeydown="if(event.key==='Enter') send()">
+  <button id="btn" onclick="send()">发送</button>
+</div>
+
+<!-- 历史面板 -->
+<div class="hist-panel" id="histPanel">
+  <div class="hp-head">📜 问答历史
+    <span class="close" onclick="toggleHist()">✕</span>
+  </div>
+  <div class="hp-list" id="histList"></div>
+  <button class="hp-clear" onclick="clearHist()">🗑️ 清空历史</button>
+</div>
+
+<!-- 昵称弹窗 -->
+<div class="modal-mask" id="nameModal">
+  <div class="modal">
+    <span class="m-cat">🐱</span>
+    <h3>欢迎来到医小喵！</h3>
+    <p>先告诉医小喵你的昵称吧~<br>（历史记录会按昵称分开保存喵）</p>
+    <input id="nameInput" type="text" maxlength="12" placeholder="输入昵称，比如：主人">
+    <button onclick="confirmName()">开始问诊喵~</button>
+  </div>
+</div>
+
+<script>
+const chatEl = document.getElementById('chat');
+const inputEl = document.getElementById('input');
+const btnEl = document.getElementById('btn');
+const NAME_KEY = 'yixiaomiao_user';
+
+/* ===== 用户管理 ===== */
+function getUser() {
+  return localStorage.getItem(NAME_KEY) || '游客';
+}
+function setUser(name) {
+  localStorage.setItem(NAME_KEY, name);
+  document.getElementById('userChip').textContent = '🧑 ' + name;
+}
+function showNameModal() {
+  document.getElementById('nameModal').style.display = 'flex';
+  setTimeout(() => document.getElementById('nameInput').focus(), 100);
+}
+function confirmName() {
+  const name = document.getElementById('nameInput').value.trim();
+  setUser(name || '游客');
+  document.getElementById('nameModal').style.display = 'none';
+  initWelcome();
+}
+function switchUser() {
+  showNameModal();
+}
+
+/* ===== 今日健康贴士 ===== */
+async function initTip() {
+  try {
+    const res = await fetch('/tip');
+    const data = await res.json();
+    document.getElementById('tipText').innerHTML =
+      '今日健康贴士 · <b>' + escapeHtml(data.topic) + '</b>：' + escapeHtml(data.text) + '…';
+    document.getElementById('tipBar').style.display = 'flex';
+  } catch (e) { /* 静默 */ }
+}
+
+/* ===== 主题卡片 ===== */
+async function initTopics() {
+  try {
+    const res = await fetch('/topics');
+    const data = await res.json();
+    const grid = document.getElementById('topicGrid');
+    grid.innerHTML = data.topics.map(t =>
+      '<div class="topic-card" onclick="send(\'' + t.name + '有什么要注意的？\')" title="问问关于' + t.name + '的健康知识">' +
+      '<span class="tc-icon">' + t.icon + '</span><span class="tc-name">' + t.name + '</span></div>'
+    ).join('');
+  } catch (e) { /* 静默 */ }
+}
+
+/* ===== 历史面板 ===== */
+function toggleHist() {
+  const p = document.getElementById('histPanel');
+  p.classList.toggle('open');
+  if (p.classList.contains('open')) loadHistory();
+}
+
+let lastHistory = [];
+
+async function loadHistory() {
+  const list = document.getElementById('histList');
+  try {
+    const res = await fetch('/history?user=' + encodeURIComponent(getUser()));
+    const data = await res.json();
+    lastHistory = data.history || [];
+    if (!lastHistory.length) {
+      list.innerHTML = '<div class="hist-empty">' + escapeHtml(getUser()) +
+        ' 还没有问答记录喵~<br>去问医小喵一个问题吧！</div>';
+      return;
+    }
+    list.innerHTML = lastHistory.map((h, i) =>
+      '<div class="hist-item" onclick="openDetailByIdx(' + i + ')">' +
+      '<div class="q">🧑 ' + escapeHtml(h.question) + '</div>' +
+      '<div class="a">🐱 ' + escapeHtml(h.answer.slice(0, 80)) + '...</div>' +
+      '<div class="t">🕐 ' + h.created_at + '</div></div>'
+    ).join('');
+  } catch (e) {
+    list.innerHTML = '<div class="hist-empty">加载失败喵：' + escapeHtml(String(e)) + '</div>';
+  }
+}
+
+/* ===== 历史载入 + 继续追问（主聊天区） ===== */
+let detailHistory = [];
+
+function openDetailByIdx(i) {
+  if (!lastHistory[i]) return;
+  const h = lastHistory[i];
+  detailHistory = [
+    { role: 'user', content: h.question },
+    { role: 'assistant', content: h.answer }
+  ];
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+  addMsg('user', escapeHtml(h.question));
+  addMsg('bot', escapeHtml(h.answer), h.sources);
+  const tip = document.createElement('div');
+  tip.style.cssText = 'text-align:center;font-size:12px;color:#64748b;padding:6px 0 2px';
+  tip.textContent = '📜 已载入历史对话，可以直接在下面继续追问喵~';
+  chatEl.appendChild(tip);
+  chatEl.scrollTop = chatEl.scrollHeight;
+  document.getElementById('resetBtn').style.display = 'block';
+}
+
+function resetChat() {
+  detailHistory = [];
+  chatEl.innerHTML = '';
+  const w = document.createElement('div');
+  w.className = 'welcome';
+  w.id = 'welcome';
+  w.innerHTML = '<span class="big">🐱</span>' +
+    '<h2>你好呀 ' + escapeHtml(getUser()) + '，我是医小喵！</h2>' +
+    '<p>新的对话开始啦，有什么健康问题尽管问喵~<br>' +
+    '<span style="font-size:11px;color:#475569">（本助手仅供参考，不能替代专业医生诊断喵）</span></p>';
+  chatEl.appendChild(w);
+  document.getElementById('resetBtn').style.display = 'none';
+  initWelcome();
+}
+
+/* ===== 个性化欢迎 ===== */
+async function initWelcome() {
+  try {
+    const res = await fetch('/history?user=' + encodeURIComponent(getUser()));
+    const data = await res.json();
+    const title = document.getElementById('welcomeTitle');
+    const topics = document.getElementById('topics');
+    if (data.topics && data.topics.length) {
+      title.textContent = '欢迎回来 ' + getUser() + '！医小喵还记得你喵~';
+      topics.innerHTML = '<span style="color:#64748b;font-size:12px">你最近常问：</span>' +
+        data.topics.map(t =>
+          '<button onclick="send(\'' + t + '有什么要注意的？\')">' + t + '</button>').join('');
+    } else {
+      title.textContent = '你好呀 ' + getUser() + '，我是医小喵！';
+      topics.innerHTML = '';
+    }
+  } catch (e) { /* 静默 */ }
+}
+
+/* ===== 聊天 ===== */
+function addMsg(role, text, sources) {
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  const avatar = role === 'user' ? '🧑' : '🐱';
+  let srcHtml = '';
+  if (sources && sources.length) {
+    srcHtml = '<div class="sources">📎 参考：<b>' + sources.join('</b>、<b>') + '</b></div>';
+  }
+  div.innerHTML = '<div class="avatar">' + avatar + '</div>' +
+    '<div><div class="bubble">' + text + '</div>' + srcHtml + '</div>';
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+  return div;
+}
+
+function addCopyBtn(botMsgEl, getText) {
+  const wrap = botMsgEl.querySelector('.bubble');
+  if (!wrap) return;
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = '📋 复制回答';
+  btn.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(getText());
+      btn.textContent = '✅ 已复制';
+      setTimeout(() => { btn.textContent = '📋 复制回答'; }, 1500);
+    } catch (e) {
+      btn.textContent = '❌ 复制失败';
+    }
+  };
+  wrap.parentElement.appendChild(btn);
+}
+
+function showTyping() {
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.id = 'typing';
+  div.innerHTML = '<div class="avatar">🐱</div><div class="bubble"><div class="typing">' +
+    '<span></span><span></span><span></span></div></div>';
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+  return div;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/* ===== 流式发送 ===== */
+async function send(q) {
+  const question = (q || inputEl.value).trim();
+  if (!question || btnEl.disabled) return;
+  inputEl.value = '';
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  // 用户气泡
+  addMsg('user', escapeHtml(question));
+  // 医小喵气泡（流式填充）
+  const botDiv = document.createElement('div');
+  botDiv.className = 'msg bot';
+  botDiv.innerHTML = '<div class="avatar">🐱</div><div class="bubble stream-cursor"></div>';
+  chatEl.appendChild(botDiv);
+  const bubble = botDiv.querySelector('.bubble');
+  chatEl.scrollTop = chatEl.scrollHeight;
+
+  btnEl.disabled = true;
+  let full = '', sources = null, done = false;
+  try {
+    const res = await fetch('/chat/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: question, user: getUser(), history: detailHistory })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { done: rd, value } = await reader.read();
+      if (rd) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const data = JSON.parse(line);
+        if (data.sources) sources = data.sources;
+        else if (data.delta) {
+          full += data.delta;
+          bubble.textContent = full;
+          chatEl.scrollTop = chatEl.scrollHeight;
+        } else if (data.done) { done = true; }
+      }
+    }
+    if (!done && full === '') throw new Error('无内容返回');
+  } catch (e) {
+    bubble.textContent = '⚠️ 喵呜……连接服务失败了：' + escapeHtml(String(e));
+  } finally {
+    bubble.classList.remove('stream-cursor');
+    btnEl.disabled = false;
+    inputEl.focus();
+  }
+
+  // 来源 + 复制按钮
+  if (sources && sources.length) {
+    const src = document.createElement('div');
+    src.className = 'sources';
+    src.innerHTML = '📎 参考：<b>' + sources.join('</b>、<b>') + '</b>';
+    botDiv.appendChild(src);
+  }
+  addCopyBtn(botDiv, () => full);
+
+  // 累积上下文
+  if (full) {
+    detailHistory.push({ role: 'user', content: question },
+                       { role: 'assistant', content: full });
+    if (detailHistory.length > 2) {
+      document.getElementById('resetBtn').style.display = 'block';
+    }
+    loadHistory();
+  }
+}
+
+/* ===== 引导区随滚动收起（下滑收起，回顶/新对话展开） ===== */
+(function () {
+  const guide = document.getElementById('guideArea');
+  chatEl.addEventListener('scroll', () => {
+    if (chatEl.scrollTop > 40) {
+      guide.classList.add('collapsed');
+    } else {
+      guide.classList.remove('collapsed');
+    }
+  });
+})();
+
+/* ===== 启动 ===== */
+if (getUser() === '游客') {
+  showNameModal();
+} else {
+  setUser(getUser());
+  initWelcome();
+}
+initTip();
+initTopics();
+</script>
+</body>
+</html>
