@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>医小喵管理台 · 对话记录</title>
+<link rel="stylesheet" href="vendor/adminlte/css/adminlte.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="vendor/overlayscrollbars/css/overlayscrollbars.min.css">
+<style>
+  .q-cell { max-width: 280px; }
+  .answer-preview { color: #6c757d; }
+  .rec-time { white-space: nowrap; }
+</style>
+</head>
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+<div class="app-wrapper">
+
+  <nav class="app-header navbar navbar-expand bg-body">
+    <div class="container-fluid">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"><i class="bi bi-list"></i></a></li>
+        <li class="nav-item d-none d-md-block"><a href="../" class="nav-link"><i class="bi bi-chat-heart"></i> 返回健康问答界面</a></li>
+      </ul>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><span class="nav-link"><i class="bi bi-pc-display"></i> 医小喵 · 管理台</span></li>
+      </ul>
+    </div>
+  </nav>
+
+  <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+    <div class="sidebar-brand">
+      <a href="./index.html" class="brand-link">
+        <i class="bi bi-heart-pulse-fill brand-image opacity-75"></i>
+        <span class="brand-text fw-light">医小喵 · 管理台</span>
+      </a>
+    </div>
+    <div class="sidebar-wrapper">
+      <nav class="mt-2">
+        <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu" data-accordion="false">
+          <li class="nav-item"><a href="index.html" class="nav-link"><i class="nav-icon bi bi-speedometer2"></i><p>数据看板</p></a></li>
+          <li class="nav-item"><a href="records.html" class="nav-link active"><i class="nav-icon bi bi-chat-left-text"></i><p>对话记录</p></a></li>
+          <li class="nav-item"><a href="users.html" class="nav-link"><i class="nav-icon bi bi-people"></i><p>用户统计</p></a></li>
+          <li class="nav-item"><a href="accounts.html" class="nav-link"><i class="nav-icon bi bi-person-gear"></i><p>账号管理</p></a></li>
+<li class="nav-item"><a href="system.html" class="nav-link"><i class="nav-icon bi bi-cpu"></i><p>系统状态</p></a></li>
+        </ul>
+      </nav>
+    </div>
+  </aside>
+
+  <main class="app-main">
+    <div class="app-content-header">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-sm-6"><h3 class="mb-0"><i class="bi bi-chat-left-text me-1"></i>对话记录</h3></div>
+          <div class="col-sm-6"><ol class="breadcrumb float-sm-end">
+            <li class="breadcrumb-item"><a href="index.html">医小喵管理台</a></li>
+            <li class="breadcrumb-item active" aria-current="page">对话记录</li>
+          </ol></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-content">
+      <div class="container-fluid">
+        <!-- 筛选栏 -->
+        <div class="card mb-3">
+          <div class="card-body py-3">
+            <form class="row g-2 align-items-end" id="filterForm">
+              <div class="col-6 col-md-2">
+                <label class="form-label small mb-1">用户昵称</label>
+                <input type="text" class="form-control form-control-sm" id="fUser" placeholder="如：主人" value="">
+              </div>
+              <div class="col-6 col-md-2">
+                <label class="form-label small mb-1">关键词</label>
+                <input type="text" class="form-control form-control-sm" id="fKw" placeholder="问题/回答包含">
+              </div>
+              <div class="col-6 col-md-2">
+                <label class="form-label small mb-1">类型</label>
+                <select class="form-select form-select-sm" id="fType">
+                  <option value="all">全部类型</option>
+                  <option value="chat">问答</option>
+                  <option value="image">看图解读</option>
+                  <option value="plan">护理计划</option>
+                  <option value="cat">猫咖对话</option>
+                </select>
+              </div>
+              <div class="col-6 col-md-3">
+                <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-search me-1"></i>查询</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnReset">重置</button>
+              </div>
+              <div class="col-12 col-md-3 text-md-end">
+                <span class="badge text-bg-light border" id="recTotal">–</span>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- 记录表格 -->
+        <div class="card">
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width:56px">ID</th>
+                    <th style="width:110px">时间</th>
+                    <th style="width:100px">用户</th>
+                    <th style="width:88px">类型</th>
+                    <th>问题</th>
+                    <th>回答预览</th>
+                    <th style="width:130px" class="text-end">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="recBody"><tr><td colspan="7" class="text-center text-muted py-4">加载中…</td></tr></tbody>
+              </table>
+            </div>
+            <!-- 分页 -->
+            <div class="card-footer d-flex justify-content-between align-items-center py-2">
+              <span class="small text-muted" id="pageInfo">–</span>
+              <div class="btn-group">
+                <button class="btn btn-sm btn-outline-primary" id="btnPrev"><i class="bi bi-chevron-left"></i> 上一页</button>
+                <button class="btn btn-sm btn-outline-primary" id="btnNext">下一页 <i class="bi bi-chevron-right"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- 详情弹窗 -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-chat-left-text me-1 text-primary"></i>记录详情 <span class="badge text-bg-secondary ms-1" id="dmId"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <div class="small text-muted mb-1"><i class="bi bi-person"></i> 用户 <span class="badge text-bg-info" id="dmUser"></span>
+          <span class="ms-2" id="dmType"></span><span class="ms-2" id="dmTime"></span></div>
+        </div>
+        <div class="mb-3 p-2 rounded bg-light border">
+          <div class="small fw-bold text-primary mb-1">❓ 问题</div>
+          <div id="dmQuestion" class="text-break"></div>
+        </div>
+        <div class="p-2 rounded bg-light border">
+          <div class="small fw-bold text-success mb-1">💬 回答（全文）</div>
+          <pre id="dmAnswer" class="mb-1 text-break" style="white-space:pre-wrap;font-family:inherit"></pre>
+        </div>
+        <div class="mt-2 small" id="dmSources"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" id="dmDelete"><i class="bi bi-trash me-1"></i>删除该条</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="vendor/overlayscrollbars/js/overlayscrollbars.browser.es6.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="vendor/adminlte/js/adminlte.min.js"></script>
+<script>
+const TYPE_COLOR = {chat:'text-bg-primary', image:'text-bg-success', plan:'text-bg-warning', cat:'text-bg-info'};
+const TYPE_LABEL = {chat:'问答', image:'看图解读', plan:'护理计划', cat:'猫咖对话'};
+const SIZE = 20;
+let state = {page: 1, user: '', kw: '', type: 'all', total: 0};
+let currentDetail = null;
+
+async function api(path, opts) {
+  opts = opts || {};
+  opts.headers = Object.assign({ 'X-Auth-Token': adminToken() }, opts.headers);
+  const r = await fetch('/admin/api' + path, opts);
+  if (r.status === 401 || r.status === 403) { location.replace('login.html'); throw new Error('登录失效'); }
+  return r.json();
+}
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// 从 URL 读取初始 user（用户页跳转过来时带 ?user=xxx）
+function readUrlParams() {
+  const p = new URLSearchParams(location.search);
+  state.user = p.get('user') || '';
+  document.getElementById('fUser').value = state.user;
+}
+
+async function load(page) {
+  state.page = page;
+  const q = new URLSearchParams({page, size: SIZE});
+  if (state.user) q.set('user', state.user);
+  if (state.kw) q.set('kw', state.kw);
+  if (state.type !== 'all') q.set('type', state.type);
+  const tb = document.getElementById('recBody');
+  tb.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm"></div> 加载中…</td></tr>';
+  const d = await api('/records?' + q.toString());
+  state.total = d.total;
+  document.getElementById('recTotal').innerHTML = '共 <b>' + d.total + '</b> 条记录';
+  document.getElementById('pageInfo').textContent = '第 ' + d.page + ' / ' + Math.max(1, Math.ceil(d.total / SIZE)) + ' 页';
+  if (!d.items.length) {
+    tb.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">没有找到记录喵～</td></tr>';
+    return;
+  }
+  tb.innerHTML = d.items.map(r => `
+    <tr>
+      <td class="text-muted small">${r.id}</td>
+      <td class="rec-time small">${esc(r.created_at || '')}</td>
+      <td>${esc(r.user)}</td>
+      <td><span class="badge ${TYPE_COLOR[r.type]}">${TYPE_LABEL[r.type]}</span></td>
+      <td class="q-cell"><span class="text-truncate d-block" title="${esc(r.question)}">${esc(r.question)}</span></td>
+      <td class="answer-preview text-truncate" style="max-width:260px">${esc(r.answer_preview)}${(r.answer_preview||'').length >= 120 ? '…' : ''}</td>
+      <td class="text-end text-nowrap">
+        <button class="btn btn-sm btn-outline-primary" data-act="detail" data-id="${r.id}"><i class="bi bi-eye"></i></button>
+        <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${r.id}"><i class="bi bi-trash"></i></button>
+      </td>
+    </tr>`).join('');
+}
+
+async function openDetail(id) {
+  const d = await api('/records/' + id);
+  if (d.error) { alert(d.error); return; }
+  currentDetail = d;
+  document.getElementById('dmId').textContent = '#' + d.id;
+  document.getElementById('dmUser').textContent = d.user;
+  document.getElementById('dmType').innerHTML = `<span class="badge ${TYPE_COLOR[d.type]}">${TYPE_LABEL[d.type]}</span>`;
+  document.getElementById('dmTime').textContent = d.created_at;
+  document.getElementById('dmQuestion').textContent = d.question;
+  document.getElementById('dmAnswer').textContent = d.answer;
+  const src = (d.sources || []).map(s => `<span class="badge text-bg-light border me-1">${esc(s)}</span>`).join('');
+  document.getElementById('dmSources').innerHTML = '📚 依据：' + (src || '<span class="text-muted">无</span>');
+  new bootstrap.Modal(document.getElementById('detailModal')).show();
+}
+
+async function delRecord(id) {
+  if (!confirm('确定删除记录 #' + id + ' 吗？此操作不可恢复喵！')) return;
+  const d = await api('/records/' + id, {method: 'DELETE'});
+  if (d.deleted) { load(state.page); } else { alert('删除失败或记录不存在'); }
+}
+
+document.getElementById('filterForm').addEventListener('submit', e => {
+  e.preventDefault();
+  state.user = document.getElementById('fUser').value.trim();
+  state.kw = document.getElementById('fKw').value.trim();
+  state.type = document.getElementById('fType').value;
+  load(1);
+});
+document.getElementById('btnReset').addEventListener('click', () => {
+  state = {page: 1, user: '', kw: '', type: 'all', total: 0};
+  document.getElementById('fUser').value = '';
+  document.getElementById('fKw').value = '';
+  document.getElementById('fType').value = 'all';
+  load(1);
+});
+document.getElementById('btnPrev').addEventListener('click', () => { if (state.page > 1) load(state.page - 1); });
+document.getElementById('btnNext').addEventListener('click', () => { if (state.page * SIZE < state.total) load(state.page + 1); });
+
+document.getElementById('recBody').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const id = +btn.dataset.id;
+  if (btn.dataset.act === 'detail') openDetail(id);
+  else if (btn.dataset.act === 'del') delRecord(id);
+});
+document.getElementById('dmDelete').addEventListener('click', async () => {
+  if (!currentDetail) return;
+  await delRecord(currentDetail.id);
+  bootstrap.Modal.getInstance(document.getElementById('detailModal'))?.hide();
+});
+
+/* 🔐 第6次迭代：管理员鉴权守卫（未登录/非管理员 → login.html） */
+const TOKEN_KEY = 'yixiaomiao_token';
+function adminToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+async function guardAdmin() {
+  const t = adminToken();
+  if (!t) { location.replace('login.html'); return false; }
+  try {
+    const r = await fetch('/auth/me', { headers: { 'X-Auth-Token': t } });
+    if (!r.ok) { location.replace('login.html'); return false; }
+    const me = await r.json();
+    if (me.role !== 'admin') { location.replace('login.html?deny=1'); return false; }
+    return true;
+  } catch (e) { location.replace('login.html'); return false; }
+}
+
+guardAdmin().then(ok => { if (ok) { readUrlParams(); load(1); } });
+</script>
+</body>
+</html>

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>医小喵 · 健康智能问答助手</title>
+<script src="/echarts.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -47,6 +48,8 @@
     transition: all .2s;
   }
   .header .hist-btn:hover { color: #67e8f9; border-color: #22d3ee88; }
+  .header .hist-btn.plan-open-btn { color: #f9a8d4; border-color: #f472b644; text-decoration: none; display: inline-flex; align-items: center; }
+  .header .hist-btn.plan-open-btn:hover { color: #fbcfe8; border-color: #f472b6; }
   /* ===== 历史面板 ===== */
   .hist-panel {
     position: fixed; top: 0; right: -360px; width: 340px; height: 100vh;
@@ -163,14 +166,68 @@
     border-top-left-radius: 4px;
     white-space: pre-wrap;
   }
+  /* ===== ✨ Markdown 渲染样式（2026-09-10 新增）===== */
+  .msg .bubble b, .msg .bubble strong { font-weight: 700; color: #e8f4ff; }
+  .msg.user .bubble b, .msg.user .bubble strong { color: #ffffff; }
+  .msg .bubble i, .msg .bubble em { font-style: italic; color: #cbd5e1; }
+  .msg .bubble .md-h { font-weight: 700; color: #f0f9ff; margin: 7px 0 3px; line-height: 1.5; }
+  .msg .bubble .md-h1 { font-size: 17px; border-bottom: 1px solid #243353; padding-bottom: 4px; }
+  .msg .bubble .md-h2 { font-size: 16px; }
+  .msg .bubble .md-h3 { font-size: 15px; color: #a5d8ff; }
+  .msg .bubble .md-h4 { font-size: 14px; color: #a5d8ff; }
+  .msg .bubble .md-ul, .msg .bubble .md-ol { margin: 4px 0 4px 4px; padding-left: 20px; }
+  .msg .bubble .md-ul li, .msg .bubble .md-ol li { margin: 0; line-height: 1.7; }
+  .msg .bubble .md-ul li::marker { color: #f472b6; }
+  .msg .bubble .md-ol li::marker { color: #22d3ee; font-weight: 700; }
+  .msg .bubble .md-code {
+    background: #0b1220; border: 1px solid #243353; border-radius: 5px;
+    padding: 1px 6px; font-size: 12.5px; color: #7dd3fc;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  .msg .bubble .md-quote {
+    border-left: 3px solid #38bdf8; background: #0b1220;
+    margin: 5px 0; padding: 5px 10px; border-radius: 0 6px 6px 0; color: #94a3b8;
+  }
+  .msg .bubble .md-hr { border: none; border-top: 1px solid #243353; margin: 9px 0; }
   .msg.bot .sources { font-size: 11px; color: #64748b; margin-top: 6px; }
   .msg.bot .sources b { color: #22d3ee; font-weight: 600; }
-  .msg.bot .copy-btn {
+  .msg .copy-btn {
     font-size: 11px; color: #64748b; cursor: pointer; margin-top: 5px;
     background: none; border: none; padding: 2px 0;
     transition: color .2s;
   }
-  .msg.bot .copy-btn:hover { color: #22d3ee; }
+  .msg .copy-btn:hover { color: #22d3ee; }
+  /* ===== 🐾 消息内容列（2026-09-08：气泡/按钮/卡片纵向排列，不再挤右侧） ===== */
+  .msg .col {
+    flex: 1 1 auto; min-width: 0;
+    display: flex; flex-direction: column; align-items: flex-start;
+  }
+  .msg .col .bubble { width: fit-content; max-width: 100%; }
+  /* 回答下方的横排小按钮行（参考/复制/护理计划） */
+  .act-row {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    margin-top: 7px;
+  }
+  .abtn {
+    background: #151d33; color: #94a3b8;
+    border: 1px solid #243353; border-radius: 999px;
+    padding: 4px 12px; font-size: 11.5px; cursor: pointer;
+    transition: all .2s; user-select: none;
+  }
+  .abtn:hover { color: #67e8f9; border-color: #22d3ee88; transform: translateY(-1px); }
+  .abtn.on { color: #f9a8d4; border-color: #f472b666; background: #f472b61a; }
+  .abtn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  .abtn .n { color: #f9a8d4; font-weight: 700; }
+  /* 参考来源：折叠列表 */
+  .src-list {
+    margin-top: 6px; font-size: 11px; color: #64748b; line-height: 1.7;
+    background: #0d1526; border: 1px solid #1e2a4a; border-radius: 10px;
+    padding: 8px 12px; max-width: 100%;
+  }
+  .src-list.collapsed { display: none; }
+  .src-list b { color: #22d3ee; font-weight: 600; }
+  .src-list .src-item { margin: 2px 0; }
   .typing { display: flex; gap: 4px; padding: 4px 2px; }
   .typing span {
     width: 7px; height: 7px; border-radius: 50%;
@@ -210,6 +267,113 @@
     border-radius: 12px; padding: 12px 14px; font-size: 13px;
     cursor: pointer; white-space: nowrap; display: none;
   }
+  /* ===== 📷 图片上传（AI看图解读，2026-09-02 新增） ===== */
+  .cam-btn {
+    background: #151d33; color: #f9a8d4;
+    border: 1px solid #f472b644; border-radius: 12px;
+    padding: 12px 14px; font-size: 16px; cursor: pointer;
+    transition: all .2s; flex-shrink: 0;
+  }
+  .cam-btn:hover { border-color: #f472b6; transform: translateY(-1px); }
+  /* ===== 🎤 语音输入（SenseVoice，2026-09-03 新增） ===== */
+  .cam-btn.rec-on {
+    background: linear-gradient(135deg, #f87171, #ef4444);
+    color: #fff; border-color: #ef4444;
+    animation: micPulse 1.2s ease-in-out infinite;
+  }
+  @keyframes micPulse {
+    0%, 100% { box-shadow: 0 0 0 0 #ef4444aa; }
+    50%      { box-shadow: 0 0 0 8px #ef444400; }
+  }
+  .img-bar {
+    margin: 0 22px 10px; padding: 8px 14px;
+    background: #10162a; border: 1px solid #f472b644; border-radius: 12px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12.5px; color: #94a3b8;
+  }
+  .img-bar img {
+    width: 44px; height: 44px; object-fit: cover;
+    border-radius: 8px; border: 1px solid #243353;
+  }
+  .img-bar .img-bar-x {
+    background: #f43f5e1a; color: #fb7185; border: 1px solid #f43f5e44;
+    border-radius: 8px; padding: 4px 10px; font-size: 12px;
+    cursor: pointer; flex-shrink: 0; border: none;
+  }
+  .img-bar .img-bar-x:hover { background: #f43f5e33; }
+  .img-bar .img-bar-tip { margin-left: auto; color: #64748b; font-size: 11.5px; }
+  .chat-img {
+    max-width: 220px; max-height: 220px;
+    border-radius: 10px; display: block;
+    border: 1px solid #ffffff22;
+  }
+  /* ===== 📊 指标对比图卡片（检查报告解读可视化） ===== */
+  .chart-card {
+    margin-top: 10px; width: min(560px, 78vw); height: 250px;
+    background: #0d1526; border: 1px solid #1e2a4a;
+    border-radius: 12px; padding: 8px 4px 0;
+  }
+  .chart-card .cc-title {
+    font-size: 11px; color: #67e8f9; padding: 2px 10px 0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .chart-card .cc-body { width: 100%; height: 214px; }
+  /* ===== 📋 护理计划卡 ===== */
+  .plan-btn {
+    font-size: 11.5px; color: #f9a8d4; cursor: pointer; margin-top: 7px;
+    background: #f472b61a; border: 1px solid #f472b644; padding: 4px 12px;
+    border-radius: 999px; transition: all .2s;
+  }
+  .plan-btn:hover { border-color: #f472b6; color: #fbcfe8; }
+  .plan-btn:disabled { opacity: .55; cursor: not-allowed; }
+  .plan-card {
+    margin-top: 10px; width: min(560px, 78vw); max-width: 100%;
+    background: #0f172ae6; border: 1px solid #f472b655;
+    border-radius: 14px; padding: 13px 15px;
+  }
+  .pc-head { font-size: 13px; color: #f1f5f9; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .pc-head b { color: #f9a8d4; }
+  .pc-level {
+    margin-left: auto; font-size: 10px; font-weight: 700; padding: 2px 10px;
+    border-radius: 999px; white-space: nowrap;
+  }
+  .pc-level.self { color: #6ee7b7; background: #10b9811a; border: 1px solid #10b98155; }
+  .pc-level.review { color: #fcd34d; background: #f59e0b1a; border: 1px solid #f59e0b55; }
+  .pc-level.need-doc { color: #fda4af; background: #f43f5e1a; border: 1px solid #f43f5e55; }
+  .pc-summary { font-size: 12px; color: #94a3b8; line-height: 1.7; margin: 8px 0 4px; }
+  .pc-items { margin-top: 6px; }
+  .pc-item {
+    display: flex; align-items: center; gap: 10px; font-size: 12.5px;
+    background: #131b30; border: 1px solid #1e2a4a; border-radius: 10px;
+    padding: 8px 11px; margin-bottom: 6px; cursor: pointer; transition: all .2s;
+  }
+  .pc-item:hover { border-color: #f472b666; }
+  .pc-item .pc-chk {
+    width: 18px; height: 18px; border-radius: 5px; flex-shrink: 0;
+    border: 2px solid #475569; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: transparent; transition: all .2s;
+  }
+  .pc-item.done .pc-chk { background: #10b981; border-color: #10b981; color: #06222e; }
+  .pc-item.done .pc-text { color: #64748b; text-decoration: line-through; }
+  .pc-item .pc-days {
+    margin-left: auto; font-size: 10px; color: #f9a8d4; white-space: nowrap;
+    background: #f472b614; border-radius: 999px; padding: 2px 8px;
+  }
+  .pc-prog { height: 5px; background: #0d1526; border-radius: 999px; overflow: hidden; margin: 8px 0 2px; }
+  .pc-prog .pc-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #10b981, #22d3ee); transition: width .4s; }
+  .pc-danger {
+    margin-top: 9px; background: #f43f5e0d; border: 1px solid #f43f5e44;
+    border-radius: 10px; padding: 8px 11px; font-size: 11.5px; color: #fda4af;
+  }
+  .pc-danger ul { margin: 4px 0 0; padding-left: 16px; color: #e2e8f0; }
+  .pc-danger li { line-height: 1.7; }
+  .pc-tl { margin-top: 9px; font-size: 11.5px; color: #94a3b8; }
+  .pc-tl-item { padding: 3px 0; line-height: 1.6; }
+  .pc-tl-item b { color: #67e8f9; margin-right: 6px; }
+  .pc-foot { margin-top: 8px; font-size: 10px; color: #475569; text-align: center; }
+  .pc-label { font-size: 11px; color: #64748b; margin: 4px 2px 0; text-align: right; }
+  .pc-label b { color: #6ee7b7; }
+  .pc-label.fin b { color: #f9a8d4; }
   .welcome { text-align: center; color: #64748b; margin: auto; line-height: 2; }
   .welcome .big { font-size: 46px; display: block; margin-bottom: 8px; }
   .welcome h2 { color: #e2e8f0; font-size: 20px; margin-bottom: 6px; }
@@ -256,15 +420,99 @@
     .msg { max-width: 92%; }
     .hist-panel { width: 85%; right: -85%; }
   }
+
+  /* ===== 🔐 登录/注册屏（第6次迭代：账号密码登录，2026-09-07）===== */
+  .auth-screen {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(1000px 500px at 50% -10%, #12325a 0%, #0b1220 50%, #080d18 100%);
+    color: #e2e8f0;
+  }
+  .auth-screen.hidden { display: none; }
+  .auth-card {
+    width: 360px; max-width: 92vw;
+    background: #0d1526dd; border: 1px solid #1e2a4a; border-radius: 16px;
+    padding: 30px 28px 24px; box-shadow: 0 0 40px #22d3ee22;
+    backdrop-filter: blur(10px);
+  }
+  .auth-card .a-logo { text-align: center; font-size: 44px; animation: float 2.6s ease-in-out infinite; }
+  .auth-card h2 { text-align: center; font-size: 20px; margin: 10px 0 2px; font-weight: 800; }
+  .auth-card h2 span { color: #22d3ee; }
+  .auth-card .a-sub { text-align: center; color: #64748b; font-size: 12px; margin-bottom: 18px; }
+  .auth-card input {
+    width: 100%; box-sizing: border-box; padding: 10px 12px; margin-bottom: 10px;
+    background: #0b1220; border: 1px solid #22314f; border-radius: 8px;
+    color: #e2e8f0; font-size: 14px; outline: none;
+  }
+  .auth-card input:focus { border-color: #22d3ee; }
+  .auth-card .a-btn {
+    width: 100%; padding: 10px; border: none; border-radius: 8px; cursor: pointer;
+    background: linear-gradient(135deg, #0891b2, #22d3ee); color: #03101a;
+    font-weight: 700; font-size: 15px; margin-top: 4px;
+  }
+  .auth-card .a-btn:disabled { opacity: .5; cursor: wait; }
+  .auth-card .a-err { color: #f87171; font-size: 12px; min-height: 18px; margin: 2px 0 6px; text-align: center; }
+  .auth-card .a-switch { text-align: center; font-size: 12.5px; color: #94a3b8; margin-top: 12px; }
+  .auth-card .a-switch a { color: #22d3ee; cursor: pointer; text-decoration: none; }
+  .auth-card .a-hint { text-align: center; font-size: 11px; color: #475569; margin-top: 10px; line-height: 1.6; }
+  /* ===== 🐾 拖放音频/图片遮罩（2026-09-08 新增，主人要求：拖音频文件到网页识别） ===== */
+  .drop-overlay {
+    position: fixed; inset: 0; z-index: 999;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(8, 13, 24, .72); backdrop-filter: blur(3px);
+    pointer-events: none;
+  }
+  .drop-overlay.show { display: flex; }
+  .drop-overlay .drop-box {
+    border: 3px dashed #22d3ee; border-radius: 24px;
+    padding: 46px 70px; text-align: center;
+    background: #0b1220ee; color: #67e8f9;
+    font-size: 21px; font-weight: 800; letter-spacing: 1px;
+    box-shadow: 0 0 60px #22d3ee33;
+    animation: dropPulse 1.2s ease-in-out infinite;
+  }
+  .drop-overlay .drop-box small {
+    display: block; margin-top: 12px; font-size: 12.5px;
+    color: #94a3b8; font-weight: 400; letter-spacing: 0;
+  }
+  @keyframes dropPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 40px #22d3ee22; }
+    50% { transform: scale(1.03); box-shadow: 0 0 80px #22d3ee55; }
+  }
 </style>
 </head>
 <body>
 
+<!-- 🔐 登录/注册屏（第6次迭代，2026-09-07） -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <div class="a-logo">🐱</div>
+    <h2>医小喵 <span>健康智能问答</span></h2>
+    <p class="a-sub">账号登录后，问答历史会跟账号走喵~</p>
+    <div id="authLogin">
+      <input id="loginUser" type="text" placeholder="用户名（2-20位中文/字母/数字）" autocomplete="username">
+      <input id="loginPass" type="password" placeholder="密码（至少 6 位）" autocomplete="current-password">
+      <div class="a-err" id="authErr"></div>
+      <button class="a-btn" id="loginBtn" onclick="doLogin()">登 录</button>
+      <div class="a-switch">还没有账号？<a onclick="showAuth('register')">注册一个</a></div>
+    </div>
+    <div id="authRegister" style="display:none">
+      <input id="regUser" type="text" placeholder="用户名（2-20位中文/字母/数字）" autocomplete="username">
+      <input id="regPass" type="password" placeholder="设置密码（至少 6 位）" autocomplete="new-password">
+      <div class="a-err" id="authErr2"></div>
+      <button class="a-btn" id="regBtn" onclick="doRegister()">注 册 并 登 录</button>
+      <div class="a-switch">已有账号？<a onclick="showAuth('login')">去登录</a></div>
+    </div>
+    <p class="a-hint">💡 第一个注册的账号是管理员，可进管理后台<br>（管理后台地址 /admin/）</p>
+  </div>
+</div>
+
 <div class="header">
   <div class="logo">🐱</div>
   <div class="title">医小喵 <span>健康智能问答</span></div>
-  <span class="user-chip" id="userChip" onclick="switchUser()">🧑 游客</span>
+  <span class="user-chip" id="userChip" onclick="confirmLogout()" title="点击退出登录">👤 未登录</span>
   <button class="hist-btn" onclick="toggleHist()">📜 历史</button>
+  <a class="hist-btn plan-open-btn" href="/plans.html" title="打开独立页面查看和管理我的护理计划">📋 我的计划</a>
   <div class="status">在线</div>
 </div>
 
@@ -299,11 +547,29 @@
   </div>
 </div>
 
+<!-- 📷 图片预览条（选了图待发送时显示） -->
+<div class="img-bar" id="imgBar" style="display:none">
+  <img id="imgBarThumb" alt="预览">
+  <span id="imgBarName"></span>
+  <button class="img-bar-x" onclick="clearImgPreview()">✕ 取消</button>
+  <span class="img-bar-tip">点"发送"即可让医小喵解读这张图片喵~</span>
+</div>
+
 <div class="input-bar">
   <button class="reset-btn" id="resetBtn" onclick="resetChat()" title="结束当前对话，开始新对话">🔄 新对话</button>
+  <button class="cam-btn" id="camBtn" onclick="chooseImg()" title="上传图片，让医小喵解读（检查报告/化验单/症状照片）">📷</button>
+  <button class="cam-btn" id="micBtn" onclick="toggleRecord()" title="语音提问：点击开始说话，再点结束，自动转文字（SenseVoice）">🎤</button>
+  <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFile(this.files[0])">
   <input id="input" type="text" placeholder="输入你的健康问题，回车发送喵~"
          onkeydown="if(event.key==='Enter') send()">
   <button id="btn" onclick="send()">发送</button>
+</div>
+
+<!-- 🐾 拖放提示遮罩（拖音频/图片文件进页面时显示，2026-09-08 新增） -->
+<div class="drop-overlay" id="dropOverlay">
+  <div class="drop-box">🐾 松开爪子，让医小喵听一听~
+    <small>支持音频 mp3 / wav / m4a / webm / ogg 或图片，自动识别成文字喵</small>
+  </div>
 </div>
 
 <!-- 历史面板 -->
@@ -315,44 +581,129 @@
   <button class="hp-clear" onclick="clearHist()">🗑️ 清空历史</button>
 </div>
 
-<!-- 昵称弹窗 -->
-<div class="modal-mask" id="nameModal">
-  <div class="modal">
-    <span class="m-cat">🐱</span>
-    <h3>欢迎来到医小喵！</h3>
-    <p>先告诉医小喵你的昵称吧~<br>（历史记录会按昵称分开保存喵）</p>
-    <input id="nameInput" type="text" maxlength="12" placeholder="输入昵称，比如：主人">
-    <button onclick="confirmName()">开始问诊喵~</button>
-  </div>
-</div>
+<!-- 昵称弹窗已在第6次迭代移除，改为账号密码登录（见上方 authScreen） -->
 
 <script>
 const chatEl = document.getElementById('chat');
 const inputEl = document.getElementById('input');
 const btnEl = document.getElementById('btn');
-const NAME_KEY = 'yixiaomiao_user';
+const NAME_KEY = 'yixiaomiao_user';  // 旧昵称键（第6次迭代起由账号体系替代，保留兼容）
+let pendingImg = null;  // 📷 待发送图片 {dataUrl, b64, name}
 
-/* ===== 用户管理 ===== */
-function getUser() {
-  return localStorage.getItem(NAME_KEY) || '游客';
+/* ===== 🔐 账号登录（第6次迭代，2026-09-07）===== */
+const TOKEN_KEY = 'yixiaomiao_token';
+const USER_KEY = 'yixiaomiao_username';
+const ROLE_KEY = 'yixiaomiao_role';
+
+function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+function getUsername() { return localStorage.getItem(USER_KEY) || ''; }
+
+/* 全局 fetch 注入：自动带 X-Auth-Token；401 统一踢回登录屏 */
+(function () {
+  const orig = window.fetch;
+  window.fetch = async function (url, opts) {
+    opts = opts || {};
+    opts.headers = Object.assign({}, opts.headers);
+    const t = getToken();
+    if (t && !opts.headers['X-Auth-Token']) opts.headers['X-Auth-Token'] = t;
+    const res = await orig(url, opts);
+    if (res.status === 401 && !/\/auth\/(login|register)/.test(String(url))) {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(ROLE_KEY);
+      const s = document.getElementById('authScreen');
+      if (s) s.classList.remove('hidden');
+      alert('登录已过期，请重新登录喵~');
+    }
+    return res;
+  };
+})();
+
+/* 兼容旧调用：getUser() = 登录账号名（未登录返回空，但未登录到不了聊天） */
+function getUser() { return getUsername(); }
+
+function showAuth(view) {
+  document.getElementById('authLogin').style.display = view === 'login' ? '' : 'none';
+  document.getElementById('authRegister').style.display = view === 'register' ? '' : 'none';
+  setAuthErr('authErr', ''); setAuthErr('authErr2', '');
 }
-function setUser(name) {
-  localStorage.setItem(NAME_KEY, name);
-  document.getElementById('userChip').textContent = '🧑 ' + name;
+function setAuthErr(id, msg) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = msg || '';
 }
-function showNameModal() {
-  document.getElementById('nameModal').style.display = 'flex';
-  setTimeout(() => document.getElementById('nameInput').focus(), 100);
+async function doLogin() {
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value;
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; setAuthErr('authErr', '');
+  try {
+    const res = await fetch('/auth/login', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: username, password: password }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || ('HTTP ' + res.status));
+    enterApp(data);
+  } catch (e) { setAuthErr('authErr', String(e.message || e)); }
+  finally { btn.disabled = false; }
 }
-function confirmName() {
-  const name = document.getElementById('nameInput').value.trim();
-  setUser(name || '游客');
-  document.getElementById('nameModal').style.display = 'none';
-  initWelcome();
+async function doRegister() {
+  const username = document.getElementById('regUser').value.trim();
+  const password = document.getElementById('regPass').value;
+  const btn = document.getElementById('regBtn');
+  btn.disabled = true; setAuthErr('authErr2', '');
+  try {
+    const res = await fetch('/auth/register', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: username, password: password }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || ('HTTP ' + res.status));
+    enterApp(data);
+    if (data.role === 'admin') alert('🎉 你是第一个注册的用户，自动成为管理员！可访问 /admin/ 管理后台喵~');
+  } catch (e) { setAuthErr('authErr2', String(e.message || e)); }
+  finally { btn.disabled = false; }
 }
-function switchUser() {
-  showNameModal();
+function enterApp(data) {
+  localStorage.setItem(TOKEN_KEY, data.token);
+  localStorage.setItem(USER_KEY, data.username);
+  localStorage.setItem(ROLE_KEY, data.role || 'user');
+  document.getElementById('authScreen').classList.add('hidden');
+  const star = data.role === 'admin' ? ' ⭐' : '';
+  document.getElementById('userChip').textContent = '👤 ' + data.username + star;
+  initTip(); initTopics(); initWelcome(); loadHistory();
 }
+function confirmLogout() {
+  if (!confirm('确定退出登录吗？')) return;
+  fetch('/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(() => {});
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(ROLE_KEY);
+  location.reload();  // 干净回到登录屏
+}
+async function checkAuth() {
+  /* 启动校验：有 token 且有效 → 直接进入聊天 */
+  if (!getToken()) return false;
+  try {
+    const res = await fetch('/auth/me');
+    if (res.ok) {
+      const d = await res.json();
+      enterApp(d);
+      return true;
+    }
+  } catch (e) { /* 网络错误按未登录处理 */ }
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(ROLE_KEY);
+  return false;
+}
+/* ===== 回车登录/注册 ===== */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Enter') return;
+  const lg = document.getElementById('loginUser'), rg = document.getElementById('regUser');
+  if (lg && document.activeElement === lg) doLogin();
+  else if (document.activeElement === document.getElementById('loginPass')) doLogin();
+  else if (rg && document.activeElement === rg) doRegister();
+  else if (document.activeElement === document.getElementById('regPass')) doRegister();
+});
 
 /* ===== 今日健康贴士 ===== */
 async function initTip() {
@@ -390,7 +741,7 @@ let lastHistory = [];
 async function loadHistory() {
   const list = document.getElementById('histList');
   try {
-    const res = await fetch('/history?user=' + encodeURIComponent(getUser()));
+    const res = await fetch('/history');
     const data = await res.json();
     lastHistory = data.history || [];
     if (!lastHistory.length) {
@@ -421,8 +772,9 @@ function openDetailByIdx(i) {
   ];
   const welcome = document.getElementById('welcome');
   if (welcome) welcome.remove();
-  addMsg('user', escapeHtml(h.question));
-  addMsg('bot', escapeHtml(h.answer), h.sources);
+  addMsg('user', h.question);
+  const botDiv = addMsg('bot', h.answer, h.sources);
+  addAnswerUI(botDiv, { question: h.question, getText: () => h.answer, sources: h.sources });
   const tip = document.createElement('div');
   tip.style.cssText = 'text-align:center;font-size:12px;color:#64748b;padding:6px 0 2px';
   tip.textContent = '📜 已载入历史对话，可以直接在下面继续追问喵~';
@@ -433,6 +785,7 @@ function openDetailByIdx(i) {
 
 function resetChat() {
   detailHistory = [];
+  clearImgPreview();
   chatEl.innerHTML = '';
   const w = document.createElement('div');
   w.className = 'welcome';
@@ -449,7 +802,7 @@ function resetChat() {
 /* ===== 个性化欢迎 ===== */
 async function initWelcome() {
   try {
-    const res = await fetch('/history?user=' + encodeURIComponent(getUser()));
+    const res = await fetch('/history');
     const data = await res.json();
     const title = document.getElementById('welcomeTitle');
     const topics = document.getElementById('topics');
@@ -466,39 +819,103 @@ async function initWelcome() {
 }
 
 /* ===== 聊天 ===== */
-function addMsg(role, text, sources) {
+/* ===== 聊天 =====
+   text 传「原始文本」；bot 回答走 mdToHtml（含 escapeHtml 防 XSS），user 提问走 escapeHtml 纯文本
+   rawHtml=true 时表示调用方已自行转义/构造好 HTML，直接注入（兼容旧调用） */
+function addMsg(role, text, sources, rawHtml) {
   const welcome = document.getElementById('welcome');
   if (welcome) welcome.remove();
   const div = document.createElement('div');
   div.className = 'msg ' + role;
   const avatar = role === 'user' ? '🧑' : '🐱';
-  let srcHtml = '';
-  if (sources && sources.length) {
-    srcHtml = '<div class="sources">📎 参考：<b>' + sources.join('</b>、<b>') + '</b></div>';
-  }
+  let inner;
+  if (rawHtml) inner = text;
+  else if (role === 'bot') inner = mdToHtml(text);
+  else inner = escapeHtml(text);
   div.innerHTML = '<div class="avatar">' + avatar + '</div>' +
-    '<div><div class="bubble">' + text + '</div>' + srcHtml + '</div>';
+    '<div class="col"><div class="bubble">' + inner + '</div></div>';
+  if (role === 'bot' && sources && sources.length) {
+    div.querySelector('.col').appendChild(makeSourcesBox(sources));
+  }
   chatEl.appendChild(div);
   chatEl.scrollTop = chatEl.scrollHeight;
   return div;
 }
 
-function addCopyBtn(botMsgEl, getText) {
-  const wrap = botMsgEl.querySelector('.bubble');
-  if (!wrap) return;
-  const btn = document.createElement('button');
-  btn.className = 'copy-btn';
-  btn.textContent = '📋 复制回答';
-  btn.onclick = async () => {
+/* 📎 参考来源折叠块（默认展开，点“参考 n”按钮可收起） */
+function makeSourcesBox(sources) {
+  const box = document.createElement('div');
+  box.className = 'src-list';
+  box.innerHTML = '📎 参考：<b>' + (sources || []).map(escapeHtml).join('</b>、<b>') + '</b>';
+  return box;
+}
+
+/* 回答下方的横排小按钮：📎参考 n / 📋复制回答 / ✨护理计划（2026-09-08 排版优化） */
+function addAnswerUI(botDiv, o) {
+  const col = botDiv.querySelector('.col') || botDiv;
+  if (col.querySelector('.act-row')) return;  // 防重复挂按钮
+  let srcList = col.querySelector('.src-list');
+  if (!srcList && o.sources && o.sources.length) {
+    srcList = makeSourcesBox(o.sources);
+    col.appendChild(srcList);
+  }
+  const bar = document.createElement('div');
+  bar.className = 'act-row';
+  if (srcList) {
+    const refBtn = document.createElement('button');
+    refBtn.className = 'abtn on';
+    refBtn.innerHTML = '📎 参考 <span class="n">' + o.sources.length + '</span>';
+    refBtn.title = '点击收起/展开参考来源';
+    refBtn.onclick = () => { srcList.classList.toggle('collapsed'); refBtn.classList.toggle('on'); };
+    bar.appendChild(refBtn);
+  }
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'abtn';
+  copyBtn.textContent = '📋 复制回答';
+  copyBtn.onclick = async () => {
     try {
-      await navigator.clipboard.writeText(getText());
-      btn.textContent = '✅ 已复制';
-      setTimeout(() => { btn.textContent = '📋 复制回答'; }, 1500);
+      await navigator.clipboard.writeText(o.getText ? o.getText() : '');
+      copyBtn.textContent = '✅ 已复制';
+      setTimeout(() => { copyBtn.textContent = '📋 复制回答'; }, 1500);
     } catch (e) {
-      btn.textContent = '❌ 复制失败';
+      copyBtn.textContent = '❌ 复制失败';
+      setTimeout(() => { copyBtn.textContent = '📋 复制回答'; }, 2000);
     }
   };
-  wrap.parentElement.appendChild(btn);
+  bar.appendChild(copyBtn);
+  if (o.question) {
+    const planBtn = document.createElement('button');
+    planBtn.className = 'abtn';
+    planBtn.textContent = '✨ 护理计划';
+    planBtn.title = '根据这个问题生成一份可打卡的护理计划';
+    planBtn.onclick = () => generatePlan(botDiv, o.question, planBtn);
+    bar.appendChild(planBtn);
+  }
+  col.appendChild(bar);
+}
+
+/* ✨ 生成护理计划 → 后端入库 → 在回答消息正下方渲染完整卡片 */
+async function generatePlan(botDiv, question, btn) {
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = '⏳ 规划中喵…';
+  try {
+    const res = await fetch('/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: question })
+    });
+    const data = await res.json();
+    if (data.error) { btn.textContent = '⚠️ ' + data.error; btn.disabled = false; return; }
+    btn.remove();
+    const col = botDiv.querySelector('.col') || botDiv;
+    buildPlanCard(col, data, {});
+    chatEl.scrollTop = chatEl.scrollHeight;
+  } catch (e) {
+    btn.textContent = '⚠️ 生成失败';
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = '✨ 护理计划'; }, 2500);
+  }
 }
 
 function showTyping() {
@@ -516,8 +933,462 @@ function escapeHtml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+/* ===== ✨ Markdown 渲染（2026-09-10 新增：回答里的 **粗体** 等语法渲染成真样式） =====
+   设计要点：
+   1) 先 escapeHtml 再渲染 → 防 XSS（模型输出里的 <script> 不会执行）
+   2) 流式容错：未闭合的 ** / ` / 列表项半截 都按原文显示，闭合后才变样式，避免打字过程中抖动
+   3) 用「哨兵字符」占位保护行内代码，避免代码里的 * 被当粗体吃掉
+*/
+function mdToHtml(src) {
+  let s = escapeHtml(src == null ? '' : src);
+
+  // 1. 行内代码 `code`（先提出来占位，防止内部符号被后续规则干扰）
+  const codes = [];
+  s = s.replace(/`([^`\n]+)`/g, (m, c) => {
+    codes.push(c);
+    return '\u0000C' + (codes.length - 1) + '\u0000';
+  });
+
+  // 2. 粗体 **text**（要求成对且非空、不跨行 → 未闭合的 ** 原样保留，天然容错）
+  s = s.replace(/\*\*([^\n*]+?)\*\*/g, '<b>$1</b>');
+  // 3. 斜体 *text*（同上，且前面不能紧跟 * ，避免吃掉粗体残留）
+  s = s.replace(/(^|[^*])\*([^\n*]+?)\*(?!\*)/g, '$1<i>$2</i>');
+
+  // 4. 按行处理块级元素（标题/列表/引用/分隔线）
+  const lines = s.split('\n');
+  const out = [];
+  let listType = null;   // 'ul' | 'ol' | null
+  const closeList = () => { if (listType) { out.push('</' + listType + '>'); listType = null; } };
+
+  for (const line of lines) {
+    const t = line.trim();
+    let m;
+    if (/^(&nbsp;|\s)*$/.test(line)) {                       // 空行 → 收列表
+      closeList(); out.push('');
+    } else if ((m = t.match(/^(#{1,4})\s+(.*)$/))) {          // 标题
+      closeList();
+      const lv = m[1].length;
+      out.push('<div class="md-h md-h' + lv + '">' + m[2] + '</div>');
+    } else if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) {            // 分隔线
+      closeList(); out.push('<hr class="md-hr">');
+    } else if ((m = t.match(/^[-*+]\s+(.*)$/))) {             // 无序列表
+      if (listType !== 'ul') { closeList(); out.push('<ul class="md-ul">'); listType = 'ul'; }
+      out.push('<li>' + m[1] + '</li>');
+    } else if ((m = t.match(/^(\d+)[.)]\s+(.*)$/))) {         // 有序列表
+      const num = parseInt(m[1], 10);
+      if (listType !== 'ol') {
+        closeList();
+        // 用 start 保留原文起始序号（避免 "6." 被渲染成 "1."）
+        out.push('<ol class="md-ol"' + (num !== 1 ? ' start="' + num + '"' : '') + '>');
+        listType = 'ol';
+      }
+      out.push('<li>' + m[2] + '</li>');
+    } else if ((m = t.match(/^&gt;\s*(.*)$/))) {              // 引用
+      closeList(); out.push('<div class="md-quote">' + m[1] + '</div>');
+    } else {
+      closeList(); out.push(line);
+    }
+  }
+  closeList();
+  // 6. 拼接时去掉空行 + 块级标签之间的换行符：pre-wrap 下每个 \n 都会渲染成真实换行，
+  //    与 li/hr/div 自带间距叠加会撑出大空隙（2026-09-10 段落间距优化）
+  s = out.filter(l => l.trim() !== '').join('\n');
+  s = s.replace(/\n(?=<(?:ul|ol|li|div|hr)\b)/g, '')       // 块级标签前的换行
+       .replace(/(<(?:ul|ol|div)[^>]*>)\n/g, '$1')        // 容器开标签后的换行
+       .replace(/\n(<\/(?:ul|ol)>)/g, '$1');              // 容器闭合标签前的换行
+
+  // 5. 行内代码还原
+  s = s.replace(/\u0000C(\d+)\u0000/g, (m, i) => '<code class="md-code">' + codes[+i] + '</code>');
+  return s;
+}
+
+/* ===== 📷 AI看图解读（2026-09-02 新增） ===== */
+function chooseImg() {
+  document.getElementById('fileInput').click();
+}
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = () => reject(new Error('文件读取失败'));
+    fr.readAsDataURL(file);
+  });
+}
+function compressImage(dataUrl, maxSide) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      const scale = Math.min(1, maxSide / Math.max(w, h));
+      w = Math.max(1, Math.round(w * scale));
+      h = Math.max(1, Math.round(h * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);  // JPEG 白底
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => reject(new Error('图片解析失败'));
+    img.src = dataUrl;
+  });
+}
+async function handleFile(file) {
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { alert('请选择图片文件喵~'); return; }
+  if (file.size > 10 * 1024 * 1024) { alert('图片超过 10MB 啦，请换一张小一点的喵~'); return; }
+  try {
+    const dataUrl = await readFileAsDataURL(file);
+    const small = await compressImage(dataUrl, 1280);  // 最长边压到 1280
+    pendingImg = { dataUrl: small, b64: small.split(',')[1], name: file.name };
+    document.getElementById('imgBarThumb').src = small;
+    document.getElementById('imgBarName').textContent =
+      file.name + '（' + Math.max(1, Math.round(file.size / 1024)) + 'KB）';
+    document.getElementById('imgBar').style.display = 'flex';
+    inputEl.placeholder = '可补充说明，如"这是血常规报告，请解读"；不填直接发送也行喵~';
+  } catch (e) {
+    alert('图片处理失败：' + e);
+  }
+  document.getElementById('fileInput').value = '';
+}
+function clearImgPreview() {
+  pendingImg = null;
+  const bar = document.getElementById('imgBar');
+  if (bar) bar.style.display = 'none';
+  inputEl.placeholder = '输入你的健康问题，回车发送喵~';
+}
+/* Ctrl+V 粘贴图片到输入框（2026-09-02 新增，主人要求） */
+inputEl.addEventListener('paste', (e) => {
+  const cd = e.clipboardData;
+  if (!cd) return;
+  // 找剪贴板里的图片（优先 items，兼容老浏览器 fallback files）
+  let file = null;
+  if (cd.items) {
+    for (const item of cd.items) {
+      if (item.type && item.type.startsWith('image/')) {
+        file = item.getAsFile && item.getAsFile();
+        break;
+      }
+    }
+  }
+  if (!file && cd.files && cd.files.length) {
+    file = cd.files[0];
+  }
+  if (file && file.type && file.type.startsWith('image/')) {
+    e.preventDefault();  // 拦掉"图片当文本粘进输入框"
+    // 粘贴的图通常没文件名，起一个
+    const ext = (file.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+    const named = new File([file], '粘贴图片-' + Date.now() + '.' + ext, { type: file.type });
+    handleFile(named);
+  }
+  // 没有图片 → 不拦截，保持默认文本粘贴
+});
+async function sendVision(q) {
+  if (!pendingImg || btnEl.disabled) return;
+  const question = ((q || inputEl.value) || '').trim() || '请解读这张图片里的内容';
+  inputEl.value = '';
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  // 用户气泡：图片缩略图 + 补充文字
+  const userDiv = document.createElement('div');
+  userDiv.className = 'msg user';
+  const textHtml = (question !== '请解读这张图片里的内容')
+    ? '<div style="margin-top:7px">' + escapeHtml(question) + '</div>' : '';
+  userDiv.innerHTML = '<div class="avatar">🧑</div><div><div class="bubble">' +
+    '<img class="chat-img" src="' + pendingImg.dataUrl + '" alt="上传图片">' +
+    textHtml + '</div></div>';
+  chatEl.appendChild(userDiv);
+
+  // 医小喵气泡（等待解读）
+  const botDiv = document.createElement('div');
+  botDiv.className = 'msg bot';
+  botDiv.innerHTML = '<div class="avatar">🐱</div><div class="col"><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div></div>';
+  chatEl.appendChild(botDiv);
+  const bubble = botDiv.querySelector('.bubble');
+  chatEl.scrollTop = chatEl.scrollHeight;
+
+  const img = pendingImg;
+  clearImgPreview();  // 提前收起预览条，图片已在对话里
+  btnEl.disabled = true;
+  let full = '';
+  try {
+    const res = await fetch('/vision/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: img.b64, question: question, user: getUser() })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    full = data.answer || '（没有返回内容）';
+    bubble.innerHTML = mdToHtml(full);
+    if (data.metrics && data.metrics.length) {
+      renderMetricsChart(botDiv, data.metrics);
+    }
+    if (full) addAnswerUI(botDiv, { question: question, getText: () => full, sources: data.sources || [] });
+    chatEl.scrollTop = chatEl.scrollHeight;
+  } catch (e) {
+    bubble.textContent = '⚠️ 喵呜……图片解读失败了：' + escapeHtml(String(e));
+  } finally {
+    btnEl.disabled = false;
+    inputEl.focus();
+  }
+
+  if (full) {
+    detailHistory.push({ role: 'user', content: '📷[图片] ' + question },
+                       { role: 'assistant', content: full });
+    if (detailHistory.length > 2) {
+      document.getElementById('resetBtn').style.display = 'block';
+    }
+    loadHistory();
+  }
+}
+
+/* ===== 📊 指标对比图渲染（检查报告解读可视化） ===== */
+const liveCharts = [];
+
+function renderMetricsChart(botDiv, metrics) {
+  const card = document.createElement('div');
+  card.className = 'chart-card';
+  card.innerHTML = '<div class="cc-title">📊 指标 vs 参考范围' +
+    '<span style="font-size:10px;color:#64748b;margin-left:auto">（红色条 = 超出参考范围）</span></div>' +
+    '<div class="cc-body"></div>';
+  const col = botDiv.querySelector('.col');
+  (col || botDiv).appendChild(card);
+
+  // 归一化：实际值 / 参考上限 ×100%（上限缺失用下限，都缺用值本身）
+  const rows = metrics.map(m => {
+    const hi = m.ref_high, lo = m.ref_low;
+    const base = hi || lo || m.value || 1;
+    const high = hi != null && m.value > hi;
+    const low = lo != null && m.value < lo;
+    return { m, pct: +(m.value / base * 100).toFixed(1), high, low };
+  });
+  const maxPct = Math.max(110, ...rows.map(r => r.pct));
+
+  const chart = echarts.init(card.querySelector('.cc-body'));
+  chart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'item', backgroundColor: '#0d1526', borderColor: '#22d3ee44',
+      textStyle: { color: '#e2e8f0' },
+      formatter: p => {
+        const r = rows[p.dataIndex];
+        const flag = r.high ? '🔴 超标' : r.low ? '🔴 过低' : '✅ 正常';
+        return r.m.name + '<br/>实测：<b>' + r.m.value + '</b> ' + (r.m.unit || '') +
+          '<br/>参考范围：' + (r.m.ref_low != null ? r.m.ref_low : '-') + ' ~ ' +
+          (r.m.ref_high != null ? r.m.ref_high : '-') + '<br/>' + flag;
+      }
+    },
+    grid: { left: 8, right: 34, top: 8, bottom: 6, containLabel: true },
+    xAxis: {
+      type: 'value', max: Math.ceil(maxPct / 100) * 100,
+      axisLabel: { color: '#94a3b8', formatter: '{value}%' },
+      splitLine: { lineStyle: { color: '#1e2a4a' } }
+    },
+    yAxis: {
+      type: 'category', data: rows.map(r => r.m.name),
+      axisLine: { lineStyle: { color: '#243353' } },
+      axisLabel: { color: '#cbd5e1', fontSize: 11 }
+    },
+    series: [{
+      type: 'bar', barWidth: 14,
+      data: rows.map(r => r.pct),
+      label: {
+        show: true, position: 'right', fontSize: 11, fontWeight: 'bold',
+        formatter: p => {
+          const r = rows[p.dataIndex];
+          return r.m.value + (r.high ? ' ↑' : r.low ? ' ↓' : '');
+        },
+        color: p => (rows[p.dataIndex].high || rows[p.dataIndex].low) ? '#fda4af' : '#6ee7b7'
+      },
+      itemStyle: {
+        borderRadius: [0, 6, 6, 0],
+        color: p => {
+          const bad = rows[p.dataIndex].high || rows[p.dataIndex].low;
+          return new echarts.graphic.LinearGradient(0, 0, 1, 0, bad
+            ? [{ offset: 0, color: '#f43f5e' }, { offset: 1, color: '#fb7185' }]
+            : [{ offset: 0, color: '#0e7490' }, { offset: 1, color: '#22d3ee' }]);
+        }
+      },
+      markLine: {
+        silent: true, symbol: 'none',
+        lineStyle: { color: '#64748b', type: 'dashed' },
+        label: { color: '#64748b', fontSize: 9, formatter: '参考上限 100%' },
+        data: [{ xAxis: 100 }]
+      }
+    }]
+  });
+  liveCharts.push(chart);
+  setTimeout(() => { chatEl.scrollTop = chatEl.scrollHeight; }, 60);
+}
+
+window.addEventListener('resize', () => { liveCharts.forEach(c => c.resize()); });
+
+/* ===== 📋 护理计划卡（2026-09-08 重写：独立存储/打卡持久化/整行贴消息下方） ===== */
+const planCache = new Map();  // pid → 后端权威 plan 数据（保存/打卡时回读 dangers/timeline）
+
+function escAttr(s) { return escapeHtml(String(s == null ? '' : s)); }
+
+function buildPlanCard(host, plan, opts) {
+  const old = host.querySelector('.plan-card');
+  if (old) old.remove();
+  const pid = plan.plan_id || plan.id || 0;
+  if (pid) planCache.set(pid, plan);
+  const level = String(plan.level || '自我管理');
+  const levelCls = level.includes('就医') ? 'need-doc' : level.includes('复查') ? 'review' : 'self';
+
+  const card = document.createElement('div');
+  card.className = 'plan-card';
+  card.dataset.pid = pid;
+  card.dataset.condition = plan.condition || '';
+  card.dataset.summary = plan.summary || '';
+  card.dataset.level = level;
+
+  const head = document.createElement('div');
+  head.className = 'pc-head';
+  head.innerHTML = '📋 <b class="pc-cond">' + escAttr(plan.condition || '健康') +
+    '</b> 护理计划<span class="pc-level ' + levelCls + '">' + escAttr(level) + '</span>';
+  card.appendChild(head);
+
+  if (plan.summary) {
+    const sum = document.createElement('div');
+    sum.className = 'pc-summary pc-sum';
+    sum.textContent = plan.summary;
+    card.appendChild(sum);
+  }
+
+  const itemsBox = document.createElement('div');
+  itemsBox.className = 'pc-items';
+  (plan.items || []).forEach(it => itemsBox.appendChild(buildPlanItemEl(it)));
+  card.appendChild(itemsBox);
+
+  const prog = document.createElement('div');
+  prog.className = 'pc-prog';
+  prog.innerHTML = '<div class="pc-fill"></div>';
+  card.appendChild(prog);
+  const label = document.createElement('div');
+  label.className = 'pc-label';
+  card.appendChild(label);
+  updatePlanProg(card);
+
+  if (plan.dangers && plan.dangers.length) {
+    const d = document.createElement('div');
+    d.className = 'pc-danger';
+    d.innerHTML = '🚨 出现以下情况请及时就医：<ul>' +
+      plan.dangers.map(x => '<li>' + escAttr(x) + '</li>').join('') + '</ul>';
+    card.appendChild(d);
+  }
+  if (plan.timeline && plan.timeline.length) {
+    const tl = document.createElement('div');
+    tl.className = 'pc-tl';
+    tl.innerHTML = '🗓️ 随访与复查节奏：' + plan.timeline.map(t =>
+      '<div class="pc-tl-item"><b>' + escAttr(t.when) + '</b>' + escAttr(t.what) + '</div>').join('');
+    card.appendChild(tl);
+  }
+  const foot = document.createElement('div');
+  foot.className = 'pc-foot';
+  foot.textContent = '💾 打卡自动保存，点击条目可勾选完成 · 本计划仅供参考，不能替代医生诊断喵';
+  card.appendChild(foot);
+
+  // 点击条目打卡（聊天流内卡片仅打卡，编辑/管理在独立页面 /plans.html）
+  card.addEventListener('click', (e) => {
+    const it = e.target.closest('.pc-item');
+    if (it) togglePlanItem(card, it);
+  });
+  host.appendChild(card);
+  return card;
+}
+
+function buildPlanItemEl(it, editable) {
+  const row = document.createElement('div');
+  row.className = 'pc-item' + (it.done ? ' done' : '');
+  row.dataset.text = it.text || '';
+  row.dataset.days = it.days || '';
+  const chk = document.createElement('span');
+  chk.className = 'pc-chk';
+  chk.textContent = '✓';
+  const txt = document.createElement('span');
+  txt.className = 'pc-text';
+  txt.textContent = it.text || '';
+  const days = document.createElement('span');
+  days.className = 'pc-days';
+  days.textContent = it.days || '';
+  row.appendChild(chk);
+  row.appendChild(txt);
+  row.appendChild(days);
+  return row;
+}
+
+function updatePlanProg(card) {
+  if (!card) return;
+  const itemsBox = card.querySelector('.pc-items');
+  if (!itemsBox) return;
+  const all = itemsBox.querySelectorAll('.pc-item').length;
+  const done = itemsBox.querySelectorAll('.pc-item.done').length;
+  const fill = card.querySelector('.pc-fill');
+  if (fill) fill.style.width = (all ? Math.round(done / all * 100) : 0) + '%';
+  const lab = card.querySelector('.pc-label');
+  if (lab) {
+    lab.className = 'pc-label' + (all && done === all ? ' fin' : '');
+    lab.innerHTML = all
+      ? (done === all ? '🎉 全部完成！坚持就是胜利喵~' : '已完成 <b>' + done + '</b> / ' + all + ' 项，继续加油喵~')
+      : '';
+  }
+}
+
+/* 打卡：本地切换 + 静默持久化到后端 */
+async function togglePlanItem(card, it) {
+  it.classList.toggle('done');
+  updatePlanProg(card);
+  if (card.dataset.pid && Number(card.dataset.pid)) persistPlan(card, true);
+}
+
+/* 从卡片 DOM 收集当前状态（打卡状态），全量 PUT 保存 */
+function collectPlanFromCard(card) {
+  const base = planCache.get(Number(card.dataset.pid)) || {};
+  const items = [...card.querySelectorAll('.pc-item')].map(el => ({
+    text: (el.dataset.text || '').trim(),
+    days: (el.dataset.days || '').trim(),
+    done: el.classList.contains('done')
+  })).filter(i => i.text);
+  return {
+    condition: (card.dataset.condition || '').trim() || base.condition || '',
+    summary: (card.dataset.summary || '').trim() || base.summary || '',
+    level: base.level || card.dataset.level || '自我管理',
+    dangers: base.dangers || [],
+    timeline: base.timeline || [],
+    items: items
+  };
+}
+
+async function persistPlan(card, silent) {
+  const pid = Number(card.dataset.pid);
+  if (!pid) return false;
+  const body = collectPlanFromCard(card);
+  try {
+    const res = await fetch('/plans/' + pid, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.ok && data.plan) {
+      planCache.set(pid, data.plan);
+      return true;
+    }
+    if (!silent) alert('保存失败喵：' + (data.error || res.status));
+    return false;
+  } catch (e) {
+    if (!silent) alert('保存失败喵：' + e);
+    return false;
+  }
+}
+
+
 /* ===== 流式发送 ===== */
 async function send(q) {
+  if (pendingImg) { await sendVision(q); return; }
   const question = (q || inputEl.value).trim();
   if (!question || btnEl.disabled) return;
   inputEl.value = '';
@@ -525,11 +1396,11 @@ async function send(q) {
   if (welcome) welcome.remove();
 
   // 用户气泡
-  addMsg('user', escapeHtml(question));
+  addMsg('user', question);
   // 医小喵气泡（流式填充）
   const botDiv = document.createElement('div');
   botDiv.className = 'msg bot';
-  botDiv.innerHTML = '<div class="avatar">🐱</div><div class="bubble stream-cursor"></div>';
+  botDiv.innerHTML = '<div class="avatar">🐱</div><div class="col"><div class="bubble stream-cursor"></div></div>';
   chatEl.appendChild(botDiv);
   const bubble = botDiv.querySelector('.bubble');
   chatEl.scrollTop = chatEl.scrollHeight;
@@ -558,7 +1429,7 @@ async function send(q) {
         if (data.sources) sources = data.sources;
         else if (data.delta) {
           full += data.delta;
-          bubble.textContent = full;
+          bubble.innerHTML = mdToHtml(full);
           chatEl.scrollTop = chatEl.scrollHeight;
         } else if (data.done) { done = true; }
       }
@@ -572,14 +1443,8 @@ async function send(q) {
     inputEl.focus();
   }
 
-  // 来源 + 复制按钮
-  if (sources && sources.length) {
-    const src = document.createElement('div');
-    src.className = 'sources';
-    src.innerHTML = '📎 参考：<b>' + sources.join('</b>、<b>') + '</b>';
-    botDiv.appendChild(src);
-  }
-  addCopyBtn(botDiv, () => full);
+  // 参考/复制/护理计划 横排按钮（2026-09-08：整行小胶囊，不再纵向散排/挤右侧）
+  if (full) addAnswerUI(botDiv, { question: question, getText: () => full, sources: sources });
 
   // 累积上下文
   if (full) {
@@ -604,13 +1469,160 @@ async function send(q) {
   });
 })();
 
-/* ===== 启动 ===== */
-if (getUser() === '游客') {
-  showNameModal();
-} else {
-  setUser(getUser());
-  initWelcome();
+/* ===== 启动（第6次迭代：校验登录态，未登录显示登录屏） ===== */
+(function initAuth() {
+  document.getElementById('authScreen').classList.remove('hidden');  // 默认先盖登录屏
+  checkAuth().then(ok => {
+    if (ok) document.getElementById('authScreen').classList.add('hidden');
+  });
+})();
+/* ===== 🎤 语音输入转文字（SenseVoice ASR，2026-09-03 新增） ===== */
+let recMedia = null, recMediaRec = null, recChunks = [], recOn = false, recTimer = null;
+
+async function toggleRecord() {
+  if (recOn) { stopRecord(); return; }
+  const mic = document.getElementById('micBtn');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('当前浏览器不支持录音，请用 Chrome/Edge 并允许麦克风权限喵~');
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recMedia = stream;
+    recChunks = [];
+    recMediaRec = new MediaRecorder(stream);
+    recMediaRec.ondataavailable = e => { if (e.data.size) recChunks.push(e.data); };
+    recMediaRec.onstop = sendAudio;
+    recMediaRec.start();
+    recOn = true;
+    mic.classList.add('rec-on');
+    mic.textContent = '⏹';
+    mic.title = '正在录音…再点一次结束';
+    inputEl.placeholder = '🎤 录音中…说完再点一次 ⏹ 结束';
+    recTimer = setTimeout(stopRecord, 60000); // 60 秒自动停
+  } catch (e) {
+    alert('无法使用麦克风：' + (e.message || e) + '（请在浏览器地址栏左侧允许麦克风权限喵）');
+  }
 }
+
+function stopRecord() {
+  if (!recOn) return;
+  recOn = false;
+  clearTimeout(recTimer);
+  try { recMediaRec.stop(); } catch (e) {}
+  const mic = document.getElementById('micBtn');
+  mic.classList.remove('rec-on');
+  mic.textContent = '🎤';
+  mic.title = '语音提问：点击开始说话，再点结束，自动转文字';
+  inputEl.placeholder = '⏳ 语音识别中…请稍等喵~';
+}
+
+/* 公共：base64 音频 → /asr 识别 → 文字回填输入框（🎤录音 & 🐾拖放文件共用，2026-09-08 抽出） */
+async function runAsr(b64, filename) {
+  try {
+    const res = await fetch('/asr', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ audio_b64: b64, filename: filename, user: getUser() })
+    });
+    const data = await res.json();
+    if (data.text) {
+      inputEl.value = data.text;
+      inputEl.placeholder = '✅ 语音已识别，检查无误后回车发送喵~';
+      inputEl.focus();
+      setTimeout(() => { if (!inputEl.value) inputEl.placeholder = '输入你的健康问题，回车发送喵~'; }, 6000);
+    } else {
+      inputEl.placeholder = '😿 没听清：' + (data.error || '再试一次喵~');
+      setTimeout(() => { inputEl.placeholder = '输入你的健康问题，回车发送喵~'; }, 3500);
+    }
+  } catch (e) {
+    inputEl.placeholder = '😿 识别失败：' + (e.message || e);
+    setTimeout(() => { inputEl.placeholder = '输入你的健康问题，回车发送喵~'; }, 3500);
+  }
+}
+
+async function sendAudio() {
+  if (recMedia) recMedia.getTracks().forEach(t => t.stop());
+  const blob = new Blob(recChunks, { type: recMediaRec ? (recMediaRec.mimeType || 'audio/webm') : 'audio/webm' });
+  recChunks = [];
+  if (blob.size < 1000) {
+    inputEl.placeholder = '😿 录音太短啦，再试一次喵~';
+    setTimeout(() => { inputEl.placeholder = '输入你的健康问题，回车发送喵~'; }, 2500);
+    return;
+  }
+  const b64 = await new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result).split(',')[1] || '');
+    fr.onerror = reject;
+    fr.readAsDataURL(blob);
+  });
+  await runAsr(b64, 'voice-' + Date.now() + '.webm');
+}
+
+/* ===== 🐾 拖放音频文件识别（2026-09-08 新增，主人要求） ===== */
+/* 用 <audio> 元数据秒读时长（不整段解码），读不出就放行交给后端兜底 */
+function audioDuration(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const au = new Audio();
+    au.preload = 'metadata';
+    au.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(au.duration); };
+    au.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    au.src = url;
+  });
+}
+async function sendAudioFile(file) {
+  const MAX_MB = 20, MAX_SEC = 180;  // 与后端 asr_server 20MB 上限一致；3 分钟内语音足够问健康问题
+  if (file.size > MAX_MB * 1024 * 1024) {
+    alert('音频超过 ' + MAX_MB + 'MB 啦，请剪短一点再拖进来喵~');
+    return;
+  }
+  const dur = await audioDuration(file);
+  if (dur !== null && dur > MAX_SEC) {
+    alert('这段音频有 ' + Math.round(dur) + ' 秒，太长啦～语音问题 ' + (MAX_SEC / 60) + ' 分钟内就够，剪短一点再拖进来喵~');
+    return;
+  }
+  inputEl.placeholder = '⏳ 音频识别中…（' + file.name + '）请稍等喵~';
+  const b64 = await new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result).split(',')[1] || '');
+    fr.onerror = reject;
+    fr.readAsDataURL(file);
+  });
+  await runAsr(b64, file.name || ('audio-' + Date.now() + '.webm'));
+}
+
+/* ===== 🐾 整页拖放：音频 → ASR 识别回填输入框；图片 → 复用 📷 handleFile（2026-09-08 新增） ===== */
+const dropOv = document.getElementById('dropOverlay');
+let dropDepth = 0;
+function showDropOv() { dropDepth++; dropOv.classList.add('show'); }
+function hideDropOv() { dropDepth = 0; dropOv.classList.remove('show'); }
+
+['dragenter', 'dragover'].forEach(evName => window.addEventListener(evName, (e) => {
+  if (!e.dataTransfer || !e.dataTransfer.types) return;
+  if (Array.from(e.dataTransfer.types).includes('Files')) {
+    e.preventDefault();          // 允许放置
+    showDropOv();
+  }
+}));
+window.addEventListener('dragleave', (e) => {
+  // 鼠标真正移出窗口才收起（经过子元素会触发多次 dragleave，用坐标判断）
+  if (e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) hideDropOv();
+});
+window.addEventListener('drop', (e) => {
+  e.preventDefault();            // 拦住浏览器默认"打开文件"导航
+  hideDropOv();
+  const dt = e.dataTransfer;
+  if (!dt || !dt.files || !dt.files.length) return;
+  const file = dt.files[0];
+  const name = (file.name || '').toLowerCase();
+  const isAudio = (file.type || '').startsWith('audio/') || /\.(mp3|wav|m4a|webm|ogg|flac|aac|amr)$/.test(name);
+  const isImage = (file.type || '').startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp)$/.test(name);
+  if (isAudio) sendAudioFile(file);
+  else if (isImage) handleFile(file);
+  else alert('喵？这个文件不是音频也不是图片（支持 mp3/wav/m4a/webm/ogg 音频或图片）~');
+});
+
 initTip();
 initTopics();
 </script>

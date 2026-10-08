@@ -11,7 +11,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 BASE = "http://localhost:11434"
 EMBED_MODEL = "qwen3-embedding:0.6b"   # 跑腿小弟
-LLM_MODEL = "qwen2.5:7b"               # 掌勺大厨
+LLM_MODEL = "qwen3.5:4b"               # 掌勺大厨
 DB_DIR = "./chroma_demo_db"
 
 # ── 1. 请出跑腿小弟 + 大厨 ──

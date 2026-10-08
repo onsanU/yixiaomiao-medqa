@@ -32,7 +32,7 @@ ollama list
 echo ""
 echo "🧪 快速测试中..."
 curl -s --max-time 60 http://localhost:11434/api/generate \
-  -d '{"model":"qwen2.5:7b","prompt":"你好！用一句话介绍一下自己。","stream":false}' \
+  -d '{"model":"qwen3.5:4b","prompt":"你好！用一句话介绍一下自己。","stream":false}' \
   | python3 -c "import json,sys; print('🐱 Qwen 大厨说:', json.load(sys.stdin).get('response','')[:150])"
 
 echo ""

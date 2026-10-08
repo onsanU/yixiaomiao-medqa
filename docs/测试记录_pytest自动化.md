@@ -22,7 +22,7 @@
 ## 运行方式
 
 ```bash
-cd /mnt/d/Project/JXprojiect/医疗健康智能问答助手
+cd /mnt/d/Project/JXprojiect/Hermes-project/project/yixiaomiao-medqa
 source ~/medqa-venv/bin/activate
 python -m pytest tests/ -v
 ```

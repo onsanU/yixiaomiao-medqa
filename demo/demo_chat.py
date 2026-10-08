@@ -13,7 +13,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 BASE = "http://localhost:11434"
 EMBED_MODEL = "qwen3-embedding:0.6b"   # 跑腿小弟
-LLM_MODEL = "qwen2.5:7b"               # 掌勺大厨
+LLM_MODEL = "qwen3.5:4b"               # 掌勺大厨
 DB_DIR = "./chroma_demo_db"
 
 # ── 药柜进货（demo用的8条医疗知识，正式项目会换真实资料）──

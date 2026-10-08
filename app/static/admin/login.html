@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>医小喵管理台 · 登录</title>
+<link rel="stylesheet" href="vendor/adminlte/css/adminlte.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<style>
+  body { min-height: 100vh; display: flex; align-items: center; justify-content: center;
+         background: radial-gradient(900px 480px at 50% -10%, #12325a 0%, #0b1220 50%, #080d18 100%); }
+  .login-card { width: 400px; max-width: 94vw; }
+  .login-logo { font-size: 40px; }
+</style>
+</head>
+<body>
+<div class="card login-card shadow-lg">
+  <div class="card-body p-4">
+    <div class="text-center mb-3">
+      <div class="login-logo">🐱</div>
+      <h4 class="mb-1 fw-bold">医小喵 · 管理后台</h4>
+      <p class="text-muted small mb-0">数据看板 / 对话记录 / 用户统计 / 系统状态</p>
+      <p class="text-muted small">仅限管理员账号登录（第一个注册的账号自动为管理员）</p>
+    </div>
+    <div class="mb-3">
+      <label class="form-label small">用户名</label>
+      <input type="text" class="form-control" id="loginUser" placeholder="管理员用户名" autocomplete="username">
+    </div>
+    <div class="mb-3">
+      <label class="form-label small">密码</label>
+      <input type="password" class="form-control" id="loginPass" placeholder="密码" autocomplete="current-password">
+    </div>
+    <div class="text-danger small mb-2" id="loginErr" style="min-height:20px"></div>
+    <button class="btn btn-primary w-100" id="loginBtn" onclick="doAdminLogin()"><i class="bi bi-shield-lock me-1"></i>进入管理后台</button>
+    <div class="text-center mt-3 small">
+      <a href="../" class="text-decoration-none">← 返回健康问答界面</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOKEN_KEY = 'yixiaomiao_token';
+const USER_KEY = 'yixiaomiao_username';
+const ROLE_KEY = 'yixiaomiao_role';
+
+function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+function setErr(msg) { document.getElementById('loginErr').textContent = msg || ''; }
+
+/* 登出参数：login.html?logout=1 清空会话 */
+(function () {
+  const p = new URLSearchParams(location.search);
+  if (p.get('logout') === '1') {
+    fetch('/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json',
+      'X-Auth-Token': getToken() } }).catch(() => {});
+    localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); localStorage.removeItem(ROLE_KEY);
+    history.replaceState(null, '', 'login.html');
+  }
+})();
+
+/* 已登录管理员 → 直接进看板 */
+(async function autoEnter() {
+  if (!getToken()) return;
+  try {
+    const r = await fetch('/auth/me', { headers: { 'X-Auth-Token': getToken() } });
+    if (r.ok) {
+      const me = await r.json();
+      localStorage.setItem(USER_KEY, me.username);
+      localStorage.setItem(ROLE_KEY, me.role);
+      if (me.role === 'admin') { location.replace('index.html'); }
+      else { setErr('该账号不是管理员，无权访问后台'); }
+    }
+  } catch (e) { /* 网络错误留在登录页 */ }
+})();
+
+async function doAdminLogin() {
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value;
+  const btn = document.getElementById('loginBtn');
+  if (!username || !password) { setErr('请输入用户名和密码'); return; }
+  btn.disabled = true; setErr('');
+  try {
+    const r = await fetch('/auth/login', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: username, password: password }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || ('HTTP ' + r.status));
+    localStorage.setItem(TOKEN_KEY, d.token);
+    localStorage.setItem(USER_KEY, d.username);
+    localStorage.setItem(ROLE_KEY, d.role || 'user');
+    if (d.role === 'admin') { location.replace('index.html'); }
+    else { setErr('该账号不是管理员，无权访问管理后台'); btn.disabled = false; }
+  } catch (e) {
+    setErr(String(e.message || e)); btn.disabled = false;
+  }
+}
+
+/* 回车登录 */
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') doAdminLogin();
+});
+</script>
+</body>
+</html>

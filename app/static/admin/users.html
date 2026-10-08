@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>医小喵管理台 · 用户统计</title>
+<link rel="stylesheet" href="vendor/adminlte/css/adminlte.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="vendor/overlayscrollbars/css/overlayscrollbars.min.css">
+</head>
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+<div class="app-wrapper">
+
+  <nav class="app-header navbar navbar-expand bg-body">
+    <div class="container-fluid">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"><i class="bi bi-list"></i></a></li>
+        <li class="nav-item d-none d-md-block"><a href="../" class="nav-link"><i class="bi bi-chat-heart"></i> 返回健康问答界面</a></li>
+      </ul>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><span class="nav-link"><i class="bi bi-pc-display"></i> 医小喵 · 管理台</span></li>
+      </ul>
+    </div>
+  </nav>
+
+  <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+    <div class="sidebar-brand">
+      <a href="./index.html" class="brand-link">
+        <i class="bi bi-heart-pulse-fill brand-image opacity-75"></i>
+        <span class="brand-text fw-light">医小喵 · 管理台</span>
+      </a>
+    </div>
+    <div class="sidebar-wrapper">
+      <nav class="mt-2">
+        <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu" data-accordion="false">
+          <li class="nav-item"><a href="index.html" class="nav-link"><i class="nav-icon bi bi-speedometer2"></i><p>数据看板</p></a></li>
+          <li class="nav-item"><a href="records.html" class="nav-link"><i class="nav-icon bi bi-chat-left-text"></i><p>对话记录</p></a></li>
+          <li class="nav-item"><a href="users.html" class="nav-link active"><i class="nav-icon bi bi-people"></i><p>用户统计</p></a></li>
+          <li class="nav-item"><a href="accounts.html" class="nav-link"><i class="nav-icon bi bi-person-gear"></i><p>账号管理</p></a></li>
+<li class="nav-item"><a href="system.html" class="nav-link"><i class="nav-icon bi bi-cpu"></i><p>系统状态</p></a></li>
+        </ul>
+      </nav>
+    </div>
+  </aside>
+
+  <main class="app-main">
+    <div class="app-content-header">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-sm-6"><h3 class="mb-0"><i class="bi bi-people me-1"></i>用户统计</h3></div>
+          <div class="col-sm-6"><ol class="breadcrumb float-sm-end">
+            <li class="breadcrumb-item"><a href="index.html">医小喵管理台</a></li>
+            <li class="breadcrumb-item active" aria-current="page">用户统计</li>
+          </ol></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-content">
+      <div class="container-fluid">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="bi bi-person-lines-fill me-1 text-info"></i>全部用户（按问答数排序）</h3>
+            <span class="float-end badge text-bg-light border" id="userTotal">–</span>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width:52px">#</th>
+                    <th>用户昵称</th>
+                    <th style="width:110px">问答数</th>
+                    <th style="width:220px">使用功能</th>
+                    <th style="width:150px">首次使用</th>
+                    <th style="width:150px">最近使用</th>
+                    <th style="width:170px" class="text-end">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="userBody"><tr><td colspan="7" class="text-center text-muted py-4">加载中…</td></tr></tbody>
+              </table>
+            </div>
+            <div class="card-footer d-flex justify-content-between align-items-center py-2">
+              <span class="small text-muted" id="pageInfo">–</span>
+              <div class="btn-group">
+                <button class="btn btn-sm btn-outline-primary" id="btnPrev"><i class="bi bi-chevron-left"></i> 上一页</button>
+                <button class="btn btn-sm btn-outline-primary" id="btnNext">下一页 <i class="bi bi-chevron-right"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="vendor/overlayscrollbars/js/overlayscrollbars.browser.es6.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="vendor/adminlte/js/adminlte.min.js"></script>
+<script>
+const TYPE_COLOR = {chat:'text-bg-primary', image:'text-bg-success', plan:'text-bg-warning', cat:'text-bg-info'};
+const TYPE_LABEL = {chat:'问答', image:'看图解读', plan:'护理计划', cat:'猫咖对话'};
+const SIZE = 20;
+let state = {page: 1, total: 0};
+
+async function api(path, opts) {
+  opts = opts || {};
+  opts.headers = Object.assign({ 'X-Auth-Token': adminToken() }, opts.headers);
+  const r = await fetch('/admin/api' + path, opts);
+  if (r.status === 401 || r.status === 403) { location.replace('login.html'); throw new Error('登录失效'); }
+  return r.json();
+}
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function load(page) {
+  state.page = page;
+  const tb = document.getElementById('userBody');
+  tb.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm"></div> 加载中…</td></tr>';
+  const d = await api('/users?page=' + page + '&size=' + SIZE);
+  state.total = d.total;
+  document.getElementById('userTotal').innerHTML = '共 <b>' + d.total + '</b> 位用户';
+  document.getElementById('pageInfo').textContent = '第 ' + d.page + ' / ' + Math.max(1, Math.ceil(d.total / SIZE)) + ' 页';
+  if (!d.items.length) {
+    tb.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">还没有用户喵～</td></tr>';
+    return;
+  }
+  tb.innerHTML = d.items.map((u, i) => `
+    <tr>
+      <td class="text-muted small">${(page - 1) * SIZE + i + 1}</td>
+      <td><i class="bi bi-person-circle me-1 text-secondary"></i><b>${esc(u.user)}</b></td>
+      <td><span class="badge text-bg-primary">${u.count} 条</span></td>
+      <td>${(u.types || []).map(t => `<span class="badge ${TYPE_COLOR[t] || 'text-bg-secondary'} me-1">${TYPE_LABEL[t] || t}</span>`).join('')}</td>
+      <td class="small text-muted">${esc(u.first_at || '')}</td>
+      <td class="small text-muted">${esc(u.last_at || '')}</td>
+      <td class="text-end text-nowrap">
+        <button class="btn btn-sm btn-outline-primary" data-act="view" data-user="${esc(u.user)}"><i class="bi bi-chat-left-text"></i> 记录</button>
+        <button class="btn btn-sm btn-outline-danger" data-act="clear" data-user="${esc(u.user)}"><i class="bi bi-trash"></i></button>
+      </td>
+    </tr>`).join('');
+}
+
+document.getElementById('userBody').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const user = btn.dataset.user;
+  if (btn.dataset.act === 'view') {
+    location.href = 'records.html?user=' + encodeURIComponent(user);
+  } else if (btn.dataset.act === 'clear') {
+    if (!confirm('确定清空用户「' + user + '」的全部记录吗？此操作不可恢复喵！')) return;
+    api('/records?user=' + encodeURIComponent(user), {method: 'DELETE'}).then(d => {
+      alert('已删除 ' + d.deleted + ' 条记录');
+      load(state.page);
+    });
+  }
+});
+document.getElementById('btnPrev').addEventListener('click', () => { if (state.page > 1) load(state.page - 1); });
+document.getElementById('btnNext').addEventListener('click', () => { if (state.page * SIZE < state.total) load(state.page + 1); });
+
+/* 🔐 第6次迭代：管理员鉴权守卫（未登录/非管理员 → login.html） */
+const TOKEN_KEY = 'yixiaomiao_token';
+function adminToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+async function guardAdmin() {
+  const t = adminToken();
+  if (!t) { location.replace('login.html'); return false; }
+  try {
+    const r = await fetch('/auth/me', { headers: { 'X-Auth-Token': t } });
+    if (!r.ok) { location.replace('login.html'); return false; }
+    const me = await r.json();
+    if (me.role !== 'admin') { location.replace('login.html?deny=1'); return false; }
+    return true;
+  } catch (e) { location.replace('login.html'); return false; }
+}
+
+guardAdmin().then(ok => { if (ok) { load(1); } });
+</script>
+</body>
+</html>

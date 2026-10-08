@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>医小喵管理台 · 系统状态</title>
+<link rel="stylesheet" href="vendor/adminlte/css/adminlte.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="vendor/overlayscrollbars/css/overlayscrollbars.min.css">
+<style>
+  .svc-ok { color: #198754; }
+  .svc-down { color: #dc3545; }
+  .mono { font-family: Consolas, monospace; }
+</style>
+</head>
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+<div class="app-wrapper">
+
+  <nav class="app-header navbar navbar-expand bg-body">
+    <div class="container-fluid">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"><i class="bi bi-list"></i></a></li>
+        <li class="nav-item d-none d-md-block"><a href="../" class="nav-link"><i class="bi bi-chat-heart"></i> 返回健康问答界面</a></li>
+      </ul>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><span class="nav-link"><i class="bi bi-pc-display"></i> 医小喵 · 管理台</span></li>
+      </ul>
+    </div>
+  </nav>
+
+  <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+    <div class="sidebar-brand">
+      <a href="./index.html" class="brand-link">
+        <i class="bi bi-heart-pulse-fill brand-image opacity-75"></i>
+        <span class="brand-text fw-light">医小喵 · 管理台</span>
+      </a>
+    </div>
+    <div class="sidebar-wrapper">
+      <nav class="mt-2">
+        <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu" data-accordion="false">
+          <li class="nav-item"><a href="index.html" class="nav-link"><i class="nav-icon bi bi-speedometer2"></i><p>数据看板</p></a></li>
+          <li class="nav-item"><a href="records.html" class="nav-link"><i class="nav-icon bi bi-chat-left-text"></i><p>对话记录</p></a></li>
+          <li class="nav-item"><a href="users.html" class="nav-link"><i class="nav-icon bi bi-people"></i><p>用户统计</p></a></li>
+          <li class="nav-item"><a href="accounts.html" class="nav-link"><i class="nav-icon bi bi-person-gear"></i><p>账号管理</p></a></li>
+          <li class="nav-item"><a href="system.html" class="nav-link active"><i class="nav-icon bi bi-cpu"></i><p>系统状态</p></a></li>
+        </ul>
+      </nav>
+    </div>
+  </aside>
+
+  <main class="app-main">
+    <div class="app-content-header">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-sm-6"><h3 class="mb-0"><i class="bi bi-cpu me-1"></i>系统状态</h3></div>
+          <div class="col-sm-6"><ol class="breadcrumb float-sm-end">
+            <li class="breadcrumb-item"><a href="index.html">医小喵管理台</a></li>
+            <li class="breadcrumb-item active" aria-current="page">系统状态</li>
+          </ol></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-content">
+      <div class="container-fluid">
+        <div class="row mb-3">
+          <div class="col-12">
+            <button class="btn btn-primary btn-sm" id="btnRefresh"><i class="bi bi-arrow-clockwise me-1"></i>刷新状态</button>
+            <span class="text-muted small ms-2" id="refTime"></span>
+          </div>
+        </div>
+
+        <!-- 服务三件套 -->
+        <div class="row">
+          <div class="col-lg-4 mb-3">
+            <div class="card h-100">
+              <div class="card-header"><h3 class="card-title"><i class="bi bi-robot me-1 text-primary"></i>Ollama 大模型服务</h3>
+                <span class="float-end" id="ollamaBadge"></span></div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped mb-0">
+                    <thead class="table-light"><tr><th>模型</th><th class="text-end">大小</th></tr></thead>
+                    <tbody id="ollamaBody"><tr><td colspan="2" class="text-center text-muted py-3">加载中…</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 mb-3">
+            <div class="card h-100">
+              <div class="card-header"><h3 class="card-title"><i class="bi bi-mic me-1 text-info"></i>SenseVoice ASR 语音服务</h3></div>
+              <div class="card-body" id="asrBody">加载中…</div>
+            </div>
+          </div>
+          <div class="col-lg-4 mb-3">
+            <div class="card h-100">
+              <div class="card-header"><h3 class="card-title"><i class="bi bi-database me-1 text-success"></i>问答数据库</h3></div>
+              <div class="card-body" id="dbBody">加载中…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 知识库 + 概况 -->
+        <div class="row">
+          <div class="col-lg-5 mb-3">
+            <div class="card h-100">
+              <div class="card-header"><h3 class="card-title"><i class="bi bi-book me-1 text-warning"></i>医疗知识库概况</h3></div>
+              <div class="card-body" id="kbBody">加载中…</div>
+            </div>
+          </div>
+          <div class="col-lg-7 mb-3">
+            <div class="card h-100">
+              <div class="card-header"><h3 class="card-title"><i class="bi bi-info-circle me-1 text-secondary"></i>服务概况</h3></div>
+              <div class="card-body" id="infoBody">加载中…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="vendor/overlayscrollbars/js/overlayscrollbars.browser.es6.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="vendor/adminlte/js/adminlte.min.js"></script>
+<script>
+async function api(path) {
+  const r = await fetch('/admin/api' + path, { headers: { 'X-Auth-Token': adminToken() } });
+  if (r.status === 401 || r.status === 403) { location.replace('login.html'); throw new Error('登录失效'); }
+  return r.json();
+}
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function load() {
+  document.getElementById('refTime').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN');
+  const d = await api('/system');
+
+  // Ollama
+  const ob = document.getElementById('ollamaBadge');
+  if (d.ollama.ok) {
+    ob.innerHTML = '<span class="badge text-bg-success"><i class="bi bi-check-circle"></i> 运行中</span>';
+    const rows = d.ollama.models.length ? d.ollama.models.map(m =>
+      `<tr><td class="mono">${esc(m.name)}</td><td class="text-end small text-muted">${m.size_gb} GB</td></tr>`).join('')
+      : '<tr><td colspan="2" class="text-center text-muted py-2">已连接但无模型（请先 ollama pull）</td></tr>';
+    document.getElementById('ollamaBody').innerHTML = rows;
+  } else {
+    ob.innerHTML = '<span class="badge text-bg-danger"><i class="bi bi-x-circle"></i> 未运行</span>';
+    document.getElementById('ollamaBody').innerHTML =
+      '<tr><td colspan="2" class="text-center text-muted py-3">Ollama 未启动<br><span class="small">问答/看图/护理计划等功能不可用</span></td></tr>';
+  }
+
+  // ASR
+  const asrHtml = d.asr.ok
+    ? '<p class="mb-1"><i class="bi bi-check-circle svc-ok"></i> 语音识别服务正常（127.0.0.1:8002）</p>'
+    : `<p class="mb-1"><i class="bi bi-x-circle svc-down"></i> 语音识别服务未响应</p><p class="text-muted small mb-1">${esc(d.asr.detail || '')}</p><p class="text-muted small">语音输入功能不可用；运行 start.sh 会自动拉起。</p>`;
+  document.getElementById('asrBody').innerHTML = asrHtml;
+
+  // DB
+  const isMysql = d.db.driver === 'mysql';
+  document.getElementById('dbBody').innerHTML = `
+    <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">存储后端</span>
+      <b>${isMysql ? '<span class="text-success"><i class="bi bi-database-check"></i> MySQL</span>' : '<span class="text-primary"><i class="bi bi-database"></i> SQLite</span>'}</b></div>
+    <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">记录总数</span><b>${d.db.records} 条</b></div>
+    <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">${isMysql ? '连接地址' : '数据库大小'}</span><b>${isMysql ? esc(d.db.path) : esc(d.db.size)}</b></div>
+    <div class="d-flex justify-content-between py-2"><span class="text-muted">存储位置</span><span class="mono small">${isMysql ? 'Windows MySQL ' + esc(d.db.path) : esc(d.db.path)}</span></div>`;
+
+  // KB
+  document.getElementById('kbBody').innerHTML = `
+    <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">知识主题资料</span><b>${d.kb_files} 篇</b></div>
+    <div class="d-flex justify-content-between py-2"><span class="text-muted">知识块（向量库）</span><b>${d.kb_chunks ?? '—'}</b></div>
+    <p class="text-muted small mt-3 mb-0"><i class="bi bi-info-circle"></i> 详情见看板页「知识块数」卡片；向量库由 build_kb.py 构建。</p>`;
+
+  // 服务概况
+  document.getElementById('infoBody').innerHTML = `
+    <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">API 版本</span><span class="mono small">${esc(d.api_version)}</span></div>
+    <div class="d-flex justify-content-between border-bottom py-2"><span class="text-muted">主服务地址</span><span class="mono small">${esc(d.api_url)}</span></div>
+    <div class="d-flex justify-content-between py-2"><span class="text-muted">健康问答界面</span><a href="../" class="small">/ 点此打开</a></div>`;
+}
+
+document.getElementById('btnRefresh').addEventListener('click', () => {
+  load().catch(e => alert('刷新失败：' + e.message));
+});
+
+/* 🔐 第6次迭代：管理员鉴权守卫（未登录/非管理员 → login.html） */
+const TOKEN_KEY = 'yixiaomiao_token';
+function adminToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+async function guardAdmin() {
+  const t = adminToken();
+  if (!t) { location.replace('login.html'); return false; }
+  try {
+    const r = await fetch('/auth/me', { headers: { 'X-Auth-Token': t } });
+    if (!r.ok) { location.replace('login.html'); return false; }
+    const me = await r.json();
+    if (me.role !== 'admin') { location.replace('login.html?deny=1'); return false; }
+    return true;
+  } catch (e) { location.replace('login.html'); return false; }
+}
+
+guardAdmin().then(ok => {
+  if (!ok) return;
+  load().catch(e => {
+    console.error(e);
+    document.body.insertAdjacentHTML('afterbegin',
+      '<div class="alert alert-danger m-2">系统状态加载失败：' + esc(e.message) + '</div>');
+  });
+});
+</script>
+</body>
+</html>

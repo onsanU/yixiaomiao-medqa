@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>医小喵管理台 · 账号管理</title>
+<link rel="stylesheet" href="vendor/adminlte/css/adminlte.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="vendor/overlayscrollbars/css/overlayscrollbars.min.css">
+</head>
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+<div class="app-wrapper">
+
+  <nav class="app-header navbar navbar-expand bg-body">
+    <div class="container-fluid">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"><i class="bi bi-list"></i></a></li>
+        <li class="nav-item d-none d-md-block"><a href="../" class="nav-link"><i class="bi bi-chat-heart"></i> 返回健康问答界面</a></li>
+      </ul>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><span class="nav-link"><i class="bi bi-pc-display"></i> 医小喵 · 管理台</span></li>
+      </ul>
+    </div>
+  </nav>
+
+  <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+    <div class="sidebar-brand">
+      <a href="./index.html" class="brand-link">
+        <i class="bi bi-heart-pulse-fill brand-image opacity-75"></i>
+        <span class="brand-text fw-light">医小喵 · 管理台</span>
+      </a>
+    </div>
+    <div class="sidebar-wrapper">
+      <nav class="mt-2">
+        <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu" data-accordion="false">
+          <li class="nav-item"><a href="index.html" class="nav-link"><i class="nav-icon bi bi-speedometer2"></i><p>数据看板</p></a></li>
+          <li class="nav-item"><a href="records.html" class="nav-link"><i class="nav-icon bi bi-chat-left-text"></i><p>对话记录</p></a></li>
+          <li class="nav-item"><a href="users.html" class="nav-link"><i class="nav-icon bi bi-people"></i><p>用户统计</p></a></li>
+          <li class="nav-item"><a href="accounts.html" class="nav-link active"><i class="nav-icon bi bi-person-gear"></i><p>账号管理</p></a></li>
+          <li class="nav-item"><a href="system.html" class="nav-link"><i class="nav-icon bi bi-cpu"></i><p>系统状态</p></a></li>
+        </ul>
+      </nav>
+    </div>
+  </aside>
+
+  <main class="app-main">
+    <div class="app-content-header">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-sm-6"><h3 class="mb-0"><i class="bi bi-person-gear me-1"></i>账号管理</h3></div>
+          <div class="col-sm-6"><ol class="breadcrumb float-sm-end">
+            <li class="breadcrumb-item"><a href="index.html">医小喵管理台</a></li>
+            <li class="breadcrumb-item active" aria-current="page">账号管理</li>
+          </ol></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-content">
+      <div class="container-fluid">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="bi bi-person-lock me-1 text-danger"></i>注册账号（第6次迭代）</h3>
+            <button class="btn btn-sm btn-outline-primary float-end" id="btnRefresh"><i class="bi bi-arrow-clockwise"></i> 刷新</button>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width:52px">#</th>
+                    <th>用户名</th>
+                    <th style="width:110px">角色</th>
+                    <th style="width:150px">注册时间</th>
+                    <th style="width:90px">问答数</th>
+                    <th style="width:230px" class="text-end">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="accBody"><tr><td colspan="6" class="text-center text-muted py-4">加载中…</td></tr></tbody>
+              </table>
+            </div>
+            <div class="card-footer d-flex justify-content-between align-items-center py-2">
+              <span class="small text-muted" id="pageInfo">–</span>
+              <div class="btn-group">
+                <button class="btn btn-sm btn-outline-primary" id="btnPrev"><i class="bi bi-chevron-left"></i> 上一页</button>
+                <button class="btn btn-sm btn-outline-primary" id="btnNext">下一页 <i class="bi bi-chevron-right"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-info py-2 small">
+          <i class="bi bi-shield-lock me-1"></i>
+          <b>安全说明</b>：密码以加密哈希存储，<b>任何人都无法查看明文密码</b>（包括管理员）。
+          用户忘记密码 → 点「重置密码」设个新密码，该用户会被强制重新登录。<br>
+          首个注册的账号自动为管理员；管理员可把普通用户提升为管理员，也可将其他管理员降级。
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="vendor/overlayscrollbars/js/overlayscrollbars.browser.es6.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="vendor/adminlte/js/adminlte.min.js"></script>
+<script>
+const SIZE = 20;
+let state = {page: 1, total: 0, me: ''};
+
+const TOKEN_KEY = 'yixiaomiao_token';
+function adminToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+async function guardAdmin() {
+  const t = adminToken();
+  if (!t) { location.replace('login.html'); return false; }
+  try {
+    const r = await fetch('/auth/me', { headers: { 'X-Auth-Token': t } });
+    if (!r.ok) { location.replace('login.html'); return false; }
+    const me = await r.json();
+    if (me.role !== 'admin') { location.replace('login.html?deny=1'); return false; }
+    state.me = me.username;
+    return true;
+  } catch (e) { location.replace('login.html'); return false; }
+}
+
+async function api(path, opts) {
+  opts = opts || {};
+  opts.headers = Object.assign({ 'X-Auth-Token': adminToken(), 'Content-Type': 'application/json' }, opts.headers);
+  const r = await fetch(path, opts);
+  if (r.status === 401 || r.status === 403) { location.replace('login.html'); throw new Error('登录失效'); }
+  return r.json();
+}
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function load(page) {
+  state.page = page;
+  const tb = document.getElementById('accBody');
+  tb.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm"></div> 加载中…</td></tr>';
+  const d = await api('/admin/api/accounts?page=' + page + '&size=' + SIZE);
+  state.total = d.total;
+  document.getElementById('pageInfo').textContent = '第 ' + d.page + ' / ' + Math.max(1, Math.ceil(d.total / SIZE)) + ' 页 · 共 ' + d.total + ' 个账号';
+  if (!d.items.length) {
+    tb.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">还没有注册账号喵～（第一个注册的用户会自动成为管理员）</td></tr>';
+    return;
+  }
+  tb.innerHTML = d.items.map((a, i) => {
+    const isMe = a.username === state.me;
+    const isAdmin = a.role === 'admin';
+    return `
+    <tr>
+      <td class="text-muted small">${(page - 1) * SIZE + i + 1}</td>
+      <td><i class="bi bi-person-circle me-1 text-secondary"></i><b>${esc(a.username)}</b>${isMe ? ' <span class="badge text-bg-light border">当前登录</span>' : ''}</td>
+      <td>${isAdmin ? '<span class="badge text-bg-danger"><i class="bi bi-shield-fill-check"></i> 管理员</span>' : '<span class="badge text-bg-secondary">普通用户</span>'}</td>
+      <td class="small text-muted">${esc(a.created_at || '')}</td>
+      <td><span class="badge text-bg-primary">${a.question_count} 条</span></td>
+      <td class="text-end text-nowrap">
+        <button class="btn btn-sm btn-outline-warning" data-act="reset" data-user="${esc(a.username)}" title="忘记密码时重置（不能查看明文）"><i class="bi bi-key"></i> 重置密码</button>
+        ${isAdmin
+          ? (isMe ? '' : `<button class="btn btn-sm btn-outline-danger" data-act="demote" data-user="${esc(a.username)}" title="降为普通用户（其登录会立即失效）"><i class="bi bi-arrow-down-circle"></i> 降级</button>`)
+          : `<button class="btn btn-sm btn-outline-success" data-act="promote" data-user="${esc(a.username)}"><i class="bi bi-arrow-up-circle"></i> 设为管理员</button>`}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('accBody').addEventListener('click', async e => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const user = btn.dataset.user;
+  const act = btn.dataset.act;
+  try {
+    if (act === 'reset') {
+      const np = prompt('为用户「' + user + '」设置新密码（至少 6 位）：');
+      if (!np) return;
+      if (np.length < 6) { alert('密码至少 6 位'); return; }
+      const d = await api('/auth/reset', { method: 'POST', body: JSON.stringify({ username: user, new_password: np }) });
+      alert('✅ ' + (d.message || '已重置'));
+    } else if (act === 'promote') {
+      if (!confirm('确定把「' + user + '」设为管理员吗？他将能访问全部对话记录和管理功能。')) return;
+      const d = await api('/auth/role', { method: 'POST', body: JSON.stringify({ username: user, role: 'admin' }) });
+      alert('✅ ' + (d.message || '已提升'));
+    } else if (act === 'demote') {
+      if (!confirm('确定把「' + user + '」降为普通用户吗？其登录会立即失效。')) return;
+      const d = await api('/auth/role', { method: 'POST', body: JSON.stringify({ username: user, role: 'user' }) });
+      alert('✅ ' + (d.message || '已降级'));
+    }
+    load(state.page);
+  } catch (err) { alert('操作失败：' + (err.message || err)); }
+});
+document.getElementById('btnRefresh').addEventListener('click', () => load(state.page));
+document.getElementById('btnPrev').addEventListener('click', () => { if (state.page > 1) load(state.page - 1); });
+document.getElementById('btnNext').addEventListener('click', () => { if (state.page * SIZE < state.total) load(state.page + 1); });
+
+guardAdmin().then(ok => { if (ok) load(1); });
+</script>
+</body>
+</html>

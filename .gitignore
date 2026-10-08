@@ -12,3 +12,25 @@ __pycache__/
 # 系统
 .DS_Store
 Thumbs.db
+
+# === 环境 & 密钥（绝对不入库）===
+.env
+.env.local
+*.env.bak
+
+# === 大模型文件（897M，改用脚本下载）===
+models/
+models/SenseVoiceSmall/
+
+# === 备份/临时文件 ===
+*.bak
+*.bak-*
+*.bak_*
+*.orig
+*.rej
+index.html.bak*
+
+# === 编辑器配置 ===
+.obsidian/
+.vscode/
+.idea/

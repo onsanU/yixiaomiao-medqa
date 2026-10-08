@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>医小喵管理台 · 数据看板</title>
+<link rel="stylesheet" href="vendor/adminlte/css/adminlte.min.css">
+<link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css">
+<link rel="stylesheet" href="vendor/overlayscrollbars/css/overlayscrollbars.min.css">
+<script src="/echarts.min.js"></script>
+<style>
+  :root { --yxm-cyan: #22d3ee; --yxm-blue: #0d6efd; }
+  .small-box h3 { font-weight: 700; }
+  .small-box .inner p { margin-bottom: 0; }
+  .latest-list { max-height: 300px; overflow: auto; }
+  .topic-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: .85rem; }
+  .topic-bar .tb-name { width: 72px; text-align: right; color: #495057; flex-shrink: 0; }
+  .topic-bar .tb-track { flex: 1; background: #e9ecef; border-radius: 3px; height: 10px; overflow: hidden; }
+  .topic-bar .tb-fill { height: 100%; background: linear-gradient(90deg, var(--yxm-blue), var(--yxm-cyan)); border-radius: 3px; transition: width .6s ease; }
+  .topic-bar .tb-num { width: 40px; color: #6c757d; flex-shrink: 0; }
+  .text-cyan { color: var(--yxm-cyan); }
+</style>
+</head>
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+<div class="app-wrapper">
+
+  <!-- ═══ 顶栏 ═══ -->
+  <nav class="app-header navbar navbar-expand bg-body">
+    <div class="container-fluid">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"><i class="bi bi-list"></i></a></li>
+        <li class="nav-item d-none d-md-block"><a href="../" class="nav-link"><i class="bi bi-chat-heart"></i> 返回健康问答界面</a></li>
+      </ul>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><span class="nav-link"><i class="bi bi-pc-display"></i> 医小喵 · 管理台</span></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ═══ 侧栏 ═══ -->
+  <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+    <div class="sidebar-brand">
+      <a href="./index.html" class="brand-link">
+        <i class="bi bi-heart-pulse-fill brand-image opacity-75"></i>
+        <span class="brand-text fw-light">医小喵 · 管理台</span>
+      </a>
+    </div>
+    <div class="sidebar-wrapper">
+      <nav class="mt-2">
+        <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu" data-accordion="false">
+          <li class="nav-item"><a href="index.html" class="nav-link active"><i class="nav-icon bi bi-speedometer2"></i><p>数据看板</p></a></li>
+          <li class="nav-item"><a href="records.html" class="nav-link"><i class="nav-icon bi bi-chat-left-text"></i><p>对话记录</p></a></li>
+          <li class="nav-item"><a href="users.html" class="nav-link"><i class="nav-icon bi bi-people"></i><p>用户统计</p></a></li>
+          <li class="nav-item"><a href="accounts.html" class="nav-link"><i class="nav-icon bi bi-person-gear"></i><p>账号管理</p></a></li>
+<li class="nav-item"><a href="system.html" class="nav-link"><i class="nav-icon bi bi-cpu"></i><p>系统状态</p></a></li>
+        </ul>
+      </nav>
+    </div>
+  </aside>
+
+  <!-- ═══ 主内容 ═══ -->
+  <main class="app-main">
+    <div class="app-content-header">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-sm-6"><h3 class="mb-0"><i class="bi bi-speedometer2 me-1"></i>数据看板</h3></div>
+          <div class="col-sm-6"><ol class="breadcrumb float-sm-end">
+            <li class="breadcrumb-item"><a href="#">医小喵管理台</a></li>
+            <li class="breadcrumb-item active" aria-current="page">数据看板</li>
+          </ol></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-content">
+      <div class="container-fluid">
+        <!-- 统计卡片 -->
+        <div class="row" id="statCards">
+          <div class="col-6 col-xl-3 mb-3">
+            <div class="small-box text-bg-primary">
+              <div class="inner"><h3 id="stTotal">–</h3><p>累计问答数</p></div>
+              <i class="bi bi-chat-dots small-box-icon"></i>
+            </div>
+          </div>
+          <div class="col-6 col-xl-3 mb-3">
+            <div class="small-box text-bg-info">
+              <div class="inner"><h3 id="stUsers">–</h3><p>使用用户数</p></div>
+              <i class="bi bi-people small-box-icon"></i>
+            </div>
+          </div>
+          <div class="col-6 col-xl-3 mb-3">
+            <div class="small-box text-bg-success">
+              <div class="inner"><h3 id="stToday">–</h3><p>今日问答</p></div>
+              <i class="bi bi-lightning-charge small-box-icon"></i>
+            </div>
+          </div>
+          <div class="col-6 col-xl-3 mb-3">
+            <div class="small-box text-bg-dark">
+              <div class="inner"><h3 id="stKb">–</h3><p>知识块数</p></div>
+              <i class="bi bi-database small-box-icon"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 趋势 + 类型分布 -->
+        <div class="row">
+          <div class="col-lg-8 mb-3">
+            <div class="card">
+              <div class="card-header"><h3 class="card-title"><i class="bi bi-graph-up me-1 text-primary"></i>近 14 天问答趋势</h3></div>
+              <div class="card-body"><div id="trendChart" style="height:280px"></div></div>
+            </div>
+          </div>
+          <div class="col-lg-4 mb-3">
+            <div class="card">
+              <div class="card-header"><h3 class="card-title"><i class="bi bi-pie-chart me-1 text-info"></i>功能类型分布</h3></div>
+              <div class="card-body"><div id="typeChart" style="height:280px"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 主题 TOP + 最新记录 -->
+        <div class="row">
+          <div class="col-lg-7 mb-3">
+            <div class="card h-100">
+              <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-grid me-1 text-success"></i>热门健康主题 TOP10</h3>
+                <a href="records.html" class="btn btn-sm btn-outline-primary float-end">查看全部记录</a>
+              </div>
+              <div class="card-body" id="topicBars"><div class="text-muted small py-4 text-center">加载中…</div></div>
+            </div>
+          </div>
+          <div class="col-lg-5 mb-3">
+            <div class="card h-100">
+              <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-clock-history me-1 text-warning"></i>最新对话</h3>
+                <span class="float-end badge text-bg-secondary" id="stAvg">–</span>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive latest-list">
+                  <table class="table table-striped align-middle mb-0">
+                    <thead><tr><th>用户</th><th>内容</th><th>时间</th></tr></thead>
+                    <tbody id="latestBody"><tr><td colspan="3" class="text-muted text-center py-3">加载中…</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="vendor/overlayscrollbars/js/overlayscrollbars.browser.es6.min.js"></script>
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="vendor/adminlte/js/adminlte.min.js"></script>
+<script>
+async function api(path) {
+  const r = await fetch('/admin/api' + path, { headers: { 'X-Auth-Token': adminToken() } });
+  if (r.status === 401 || r.status === 403) { location.replace('login.html'); throw new Error('登录失效'); }
+  return r.json();
+}
+
+// 类型徽标颜色
+const TYPE_COLOR = {chat:'text-bg-primary', image:'text-bg-success', plan:'text-bg-warning', cat:'text-bg-info'};
+const TYPE_LABEL = {chat:'问答', image:'看图解读', plan:'护理计划', cat:'猫咖对话'};
+
+function badge(type) {
+  return `<span class="badge ${TYPE_COLOR[type]||'text-bg-secondary'}">${TYPE_LABEL[type]||type}</span>`;
+}
+
+async function loadStats() {
+  const d = await api('/stats');
+  document.getElementById('stTotal').textContent = d.total_questions;
+  document.getElementById('stUsers').textContent = d.total_users;
+  document.getElementById('stToday').textContent = d.today_questions;
+  document.getElementById('stKb').textContent = d.kb_chunks ?? (d.kb_files + ' 篇');
+  document.getElementById('stAvg').textContent = '人均 ' + d.avg_per_user + ' 问';
+
+  // 趋势折线
+  const trend = echarts.init(document.getElementById('trendChart'));
+  trend.setOption({
+    grid: {left: 40, right: 16, top: 30, bottom: 28},
+    tooltip: {trigger: 'axis'},
+    xAxis: {type: 'category', data: d.trend.map(t => t.date), axisLine: {lineStyle: {color: '#adb5bd'}}},
+    yAxis: {type: 'value', minInterval: 1, splitLine: {lineStyle: {color: '#e9ecef'}}},
+    series: [{
+      name: '问答数', type: 'line', smooth: true, data: d.trend.map(t => t.count),
+      symbolSize: 6,
+      lineStyle: {width: 3, color: '#22d3ee'},
+      itemStyle: {color: '#22d3ee'},
+      areaStyle: {color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        {offset: 0, color: 'rgba(34,211,238,.35)'}, {offset: 1, color: 'rgba(34,211,238,0)'}])}
+    }]
+  });
+
+  // 类型环形图
+  const typeData = d.type_dist.map(x => ({name: x.label, value: x.count}));
+  const typeChart = echarts.init(document.getElementById('typeChart'));
+  typeChart.setOption({
+    tooltip: {trigger: 'item'},
+    legend: {bottom: 0, icon: 'circle'},
+    color: ['#0d6efd', '#22d3ee', '#10b981', '#f59e0b'],
+    series: [{
+      type: 'pie', radius: ['52%', '74%'], center: ['50%', '44%'],
+      itemStyle: {borderRadius: 6, borderColor: '#fff', borderWidth: 2},
+      label: {formatter: '{b}\n{c} 条'},
+      data: typeData.length ? typeData : [{name: '暂无', value: 0}]
+    }]
+  });
+
+  // 主题 TOP10 进度条
+  const box = document.getElementById('topicBars');
+  const dist = d.topic_dist.slice(0, 10);
+  const max = dist.length ? dist[0].count : 1;
+  box.innerHTML = dist.length ? dist.map(t => `
+    <div class="topic-bar">
+      <span class="tb-name">${t.topic}</span>
+      <div class="tb-track"><div class="tb-fill" style="width:${(t.count/max*100).toFixed(0)}%"></div></div>
+      <span class="tb-num">${t.count}</span>
+    </div>`).join('') : '<div class="text-muted small py-4 text-center">还没有问答数据喵～</div>';
+
+  // 最新 5 条
+  const rec = await api('/records?size=5');
+  const tb = document.getElementById('latestBody');
+  tb.innerHTML = rec.items.length ? rec.items.map(r => `
+    <tr>
+      <td>${r.user}</td>
+      <td class="text-truncate" style="max-width:200px">${r.question}</td>
+      <td class="text-nowrap small text-muted">${(r.created_at||'').slice(5,16)}</td>
+    </tr>`).join('') : '<tr><td colspan="3" class="text-muted text-center py-3">暂无记录</td></tr>';
+}
+
+// 浏览器尺寸变化自适应图表
+window.addEventListener('resize', () => {
+  const ec = document.querySelectorAll('canvas');
+  ec.forEach(() => {});
+});
+
+/* 🔐 第6次迭代：管理员鉴权守卫（未登录/非管理员 → login.html） */
+const TOKEN_KEY = 'yixiaomiao_token';
+function adminToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+async function guardAdmin() {
+  const t = adminToken();
+  if (!t) { location.replace('login.html'); return false; }
+  try {
+    const r = await fetch('/auth/me', { headers: { 'X-Auth-Token': t } });
+    if (!r.ok) { location.replace('login.html'); return false; }
+    const me = await r.json();
+    if (me.role !== 'admin') { location.replace('login.html?deny=1'); return false; }
+    return true;
+  } catch (e) { location.replace('login.html'); return false; }
+}
+
+guardAdmin().then(ok => {
+  if (!ok) return;
+  loadStats().catch(e => {
+    console.error('加载看板失败', e);
+    document.getElementById('statCards').innerHTML = '<div class="alert alert-danger">数据加载失败：' + e.message + '（API 服务是否在运行？）</div>';
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📋 我的健康计划 · 医小喵</title>
+<script src="/echarts.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: radial-gradient(1000px 500px at 50% -10%, #12325a 0%, #0b1220 50%, #080d18 100%);
+    color: #e2e8f0;
+    font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    min-height: 100vh; padding-bottom: 50px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 18px; }
+  /* ===== 顶部 ===== */
+  .header { display: flex; align-items: center; gap: 12px; padding: 18px 0 6px; }
+  .logo { font-size: 34px; animation: float 2.6s ease-in-out infinite; }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  .title { font-size: 21px; font-weight: 800; }
+  .title span { color: #22d3ee; }
+  .head-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .back-btn {
+    background: #151d33; color: #94a3b8; border: 1px solid #243353;
+    border-radius: 10px; padding: 7px 14px; font-size: 12.5px; cursor: pointer;
+    transition: all .2s; text-decoration: none;
+  }
+  .back-btn:hover { color: #67e8f9; border-color: #22d3ee88; }
+  .user-chip {
+    font-size: 12.5px; color: #f9a8d4;
+    background: #f472b61a; border: 1px solid #f472b644;
+    padding: 5px 13px; border-radius: 999px;
+  }
+  .sub { color: #64748b; font-size: 12.5px; padding: 0 0 4px 46px; line-height: 1.7; }
+  /* ===== 概览统计 ===== */
+  .stats { display: flex; gap: 12px; margin: 16px 0 4px; flex-wrap: wrap; }
+  .stat-card {
+    background: #121a2ecc; border: 1px solid #1e2a4a; border-radius: 16px;
+    padding: 14px 20px; flex: 1; min-width: 130px; backdrop-filter: blur(6px);
+  }
+  .stat-card .num { font-size: 26px; font-weight: 800; color: #22d3ee; }
+  .stat-card .num.pink { color: #f9a8d4; }
+  .stat-card .num.green { color: #6ee7b7; }
+  .stat-card .lbl { font-size: 11.5px; color: #64748b; margin-top: 3px; }
+  .donut-card {
+    background: #121a2ecc; border: 1px solid #1e2a4a; border-radius: 16px;
+    padding: 10px 16px; backdrop-filter: blur(6px); display: flex;
+    align-items: center; gap: 12px; min-width: 250px;
+  }
+  .donut-card .d-title { font-size: 12.5px; color: #cbd5e1; font-weight: 600; }
+  .donut-card .d-sub { font-size: 11px; color: #64748b; margin-top: 4px; line-height: 1.6; }
+  .donut-card .d-sub b { color: #6ee7b7; }
+  #donutBox { width: 130px; height: 130px; flex-shrink: 0; }
+  /* ===== 计划大卡 ===== */
+  .plan-cardx {
+    background: #121a2ecc; border: 1px solid #1e2a4a; border-radius: 18px;
+    padding: 18px 20px; margin: 14px 0; backdrop-filter: blur(6px);
+    transition: border .2s;
+  }
+  .plan-cardx:hover { border-color: #243353; }
+  .plan-cardx.editing { border-color: #f472b655; }
+  .pc-top { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .pc-title { font-size: 17px; font-weight: 800; color: #f1f5f9; }
+  .pc-title .ic { margin-right: 6px; }
+  .tag {
+    font-size: 10.5px; font-weight: 600; padding: 3px 12px; border-radius: 999px;
+    margin-left: auto; white-space: nowrap;
+  }
+  .tag.cyan { color: #67e8f9; background: #22d3ee1a; border: 1px solid #22d3ee44; }
+  .tag.pink { color: #f9a8d4; background: #f472b61a; border: 1px solid #f472b644; }
+  .tag.amber { color: #fcd34d; background: #f59e0b1a; border: 1px solid #f59e0b55; }
+  .tag.red { color: #fda4af; background: #f43f5e1a; border: 1px solid #f43f5e55; }
+  .tag.green { color: #6ee7b7; background: #10b9811a; border: 1px solid #10b98155; }
+  .pc-q {
+    font-size: 11.5px; color: #64748b; background: #0d1526;
+    border: 1px solid #1e2a4a; border-radius: 10px; padding: 7px 12px;
+    margin: 10px 0 2px; line-height: 1.7;
+  }
+  .pc-q b { color: #94a3b8; }
+  .pc-sum { font-size: 12.5px; color: #94a3b8; line-height: 1.8; margin: 10px 0 4px; }
+  /* checklist（打卡项） */
+  .plan-item {
+    display: flex; align-items: center; gap: 12px;
+    background: #131b30; border: 1px solid #1e2a4a; border-radius: 12px;
+    padding: 10px 14px; margin-top: 8px; cursor: pointer;
+    transition: all .2s; font-size: 13.5px;
+  }
+  .plan-item:hover { border-color: #22d3ee66; }
+  .plan-item .chk {
+    width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0;
+    border: 2px solid #475569; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; color: transparent; transition: all .2s;
+  }
+  .plan-item.done .chk { background: #10b981; border-color: #10b981; color: #06222e; }
+  .plan-item .p-text { flex: 1; line-height: 1.6; }
+  .plan-item.done .p-text { color: #64748b; text-decoration: line-through; }
+  .plan-item .p-days {
+    font-size: 11px; color: #64748b; background: #0d1526;
+    border-radius: 999px; padding: 3px 10px; white-space: nowrap;
+  }
+  .plan-progress { margin: 12px 2px 2px; }
+  .plan-progress .bar { height: 8px; background: #0d1526; border-radius: 999px; overflow: hidden; }
+  .plan-progress .fill {
+    height: 100%; width: 0%; border-radius: 999px;
+    background: linear-gradient(90deg, #10b981, #22d3ee); transition: width .4s ease;
+  }
+  .plan-progress .label { font-size: 11.5px; color: #64748b; margin-top: 6px; text-align: right; }
+  .plan-progress .label.fin { color: #f9a8d4; }
+  /* 危险信号 + 时间线 */
+  .danger {
+    margin-top: 12px; border: 1px solid #f43f5e55; background: #f43f5e0d;
+    border-radius: 12px; padding: 10px 14px;
+  }
+  .danger .d-h { font-size: 11.5px; color: #fda4af; font-weight: 600; margin-bottom: 4px; }
+  .danger ul { list-style: none; }
+  .danger li { font-size: 12.5px; color: #e2e8f0; line-height: 1.9; padding-left: 20px; position: relative; }
+  .danger li::before { content: "⚠"; position: absolute; left: 0; font-size: 11px; }
+  .tl { margin-top: 12px; border-radius: 12px; padding: 4px 2px; }
+  .tl .t-h { font-size: 11.5px; color: #67e8f9; font-weight: 600; margin-bottom: 6px; }
+  .tl-item { display: flex; gap: 10px; font-size: 12.5px; padding: 3px 0; line-height: 1.7; }
+  .tl-item .when { color: #67e8f9; font-weight: 700; flex-shrink: 0; min-width: 64px; }
+  .tl-item .what { color: #cbd5e1; }
+  /* 卡片操作 */
+  .pc-acts { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .pbtn {
+    background: #151d33; color: #94a3b8; border: 1px solid #243353;
+    border-radius: 999px; padding: 6px 16px; font-size: 12px; cursor: pointer;
+    transition: all .2s;
+  }
+  .pbtn:hover { color: #67e8f9; border-color: #22d3ee88; }
+  .pbtn.good { color: #6ee7b7; border-color: #10b98155; }
+  .pbtn.good:hover { background: #10b9811a; border-color: #10b981; }
+  .pbtn.bad { color: #fb7185; border-color: #f43f5e55; }
+  .pbtn.bad:hover { background: #f43f5e1a; border-color: #f43f5e; }
+  .pbtn.on { color: #f9a8d4; border-color: #f472b666; background: #f472b61a; }
+  .pbtn:disabled { opacity: .5; cursor: not-allowed; }
+  /* ===== 编辑态 ===== */
+  .pe-input {
+    background: #0d1526; border: 1px solid #243353; border-radius: 8px;
+    padding: 6px 10px; color: #e2e8f0; font-size: 13px; outline: none;
+    transition: border .2s; width: 100%;
+  }
+  .pe-input:focus { border-color: #22d3ee88; }
+  .pc-top.editing .pe-input { width: 280px; max-width: 100%; }
+  .plan-item.editing { cursor: default; }
+  .plan-item.editing .pe-input { flex: 1; }
+  .plan-item.editing .p-days { display: none; }
+  .days-ed {
+    background: #0d1526; border: 1px solid #243353; border-radius: 6px;
+    color: #f9a8d4; font-size: 11px; padding: 4px 8px; width: 88px; outline: none;
+  }
+  .del-x {
+    background: none; border: none; color: #64748b; cursor: pointer;
+    font-size: 14px; padding: 2px 6px; border-radius: 6px; line-height: 1; transition: all .2s;
+  }
+  .del-x:hover { color: #fb7185; background: #f43f5e1a; }
+  .add-row { display: flex; gap: 8px; margin-top: 10px; }
+  .foot-note { font-size: 10.5px; color: #475569; text-align: center; margin-top: 22px; line-height: 1.8; }
+  .empty {
+    text-align: center; color: #64748b; padding: 70px 20px; line-height: 2.4;
+    background: #121a2e88; border: 1px dashed #1e2a4a; border-radius: 18px; margin-top: 20px;
+  }
+  .empty .big { font-size: 44px; display: block; }
+  .empty a {
+    color: #f9a8d4; text-decoration: none; font-weight: 700;
+    border: 1px solid #f472b644; background: #f472b61a;
+    border-radius: 999px; padding: 6px 18px; display: inline-block; margin-top: 10px;
+    transition: all .2s;
+  }
+  .empty a:hover { border-color: #f472b6; }
+  #pageLoadTip { text-align: center; color: #475569; padding: 60px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="logo">🐱</div>
+    <div class="title">医小喵 <span>健康计划</span></div>
+    <div class="head-right">
+      <span class="user-chip" id="userChip">👤 …</span>
+      <a class="back-btn" href="/">← 返回问答</a>
+    </div>
+  </div>
+  <div class="sub">每一份 AI 护理计划都存在你的账号下（不同账号互不串喵）～<br>点击行动项即可打卡，进度自动保存；点 ✏️ 可以自由增删改内容。</div>
+
+  <div class="stats" id="statsRow" style="display:none">
+    <div class="stat-card"><div class="num" id="stPlans">0</div><div class="lbl">📋 护理计划</div></div>
+    <div class="stat-card"><div class="num pink" id="stItems">0</div><div class="lbl">✅ 行动项（全部计划）</div></div>
+    <div class="stat-card"><div class="num green" id="stDone">0</div><div class="lbl">🏅 已打卡完成</div></div>
+    <div class="donut-card">
+      <div id="donutBox"></div>
+      <div>
+        <div class="d-title">📊 总完成率</div>
+        <div class="d-sub" id="donutSub">还没有计划喵～<br>去问答页点 <b>✨ 护理计划</b> 生成一份吧</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="planList"></div>
+  <div id="pageLoadTip">⏳ 正在加载你的护理计划喵…</div>
+  <div class="foot-note" id="footNote" style="display:none">
+    💡 提示：在问答页点回答下方的「✨ 护理计划」可生成新计划<br>
+    🐾 本页面仅供参考，不能替代专业医生诊断喵
+  </div>
+</div>
+
+<script>
+/* ===== 🔐 鉴权（与主页面共用 localStorage token） ===== */
+const TOKEN_KEY = 'yixiaomiao_token';
+const USER_KEY = 'yixiaomiao_username';
+const ROLE_KEY = 'yixiaomiao_role';
+function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+(function () {
+  if (!getToken()) { location.replace('/'); return; }
+  const orig = window.fetch;
+  window.fetch = async function (url, opts) {
+    opts = opts || {};
+    opts.headers = Object.assign({}, opts.headers);
+    const t = getToken();
+    if (t && !opts.headers['X-Auth-Token']) opts.headers['X-Auth-Token'] = t;
+    const res = await orig(url, opts);
+    if (res.status === 401) {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(ROLE_KEY);
+      location.replace('/');
+    }
+    return res;
+  };
+})();
+const user = localStorage.getItem(USER_KEY) || '';
+const role = localStorage.getItem(ROLE_KEY) || '';
+document.getElementById('userChip').textContent = '👤 ' + user + (role === 'admin' ? ' ⭐' : '');
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/* ===== 数据 ===== */
+const planCache = new Map();
+let currentPlans = [];
+
+function levelTagCls(lv) {
+  if (lv.includes('就医')) return 'red';
+  if (lv.includes('复查')) return 'amber';
+  if (lv.includes('自我')) return 'green';
+  return 'cyan';
+}
+function countStat() {
+  const items = currentPlans.reduce((s, p) => s + (p.total || 0), 0);
+  const done = currentPlans.reduce((s, p) => s + (p.done || 0), 0);
+  document.getElementById('stPlans').textContent = currentPlans.length;
+  document.getElementById('stItems').textContent = items;
+  document.getElementById('stDone').textContent = done;
+  const pct = items ? Math.round(done / items * 100) : 0;
+  const chart = echarts.getInstanceByDom(document.getElementById('donutBox'));
+  if (chart) {
+    chart.setOption({
+      series: [{ data: [
+        { value: done, itemStyle: { color: '#10b981' } },
+        { value: Math.max(items - done, 0), itemStyle: { color: '#1e2a4a' } }
+      ] }]
+    });
+  }
+  const sub = document.getElementById('donutSub');
+  sub.innerHTML = items
+    ? '完成 <b>' + pct + '%</b> · 剩 ' + (items - done) + ' 项待打卡<br>' + (pct === 100 ? '🎉 全部完成！太棒了喵~' : '继续加油喵~')
+    : '还没有计划喵～<br>去问答页点 <b>✨ 护理计划</b> 生成一份吧';
+}
+
+/* ===== 渲染卡片 ===== */
+function buildItemRow(it) {
+  const row = document.createElement('div');
+  row.className = 'plan-item' + (it.done ? ' done' : '');
+  row.dataset.text = it.text || '';
+  row.dataset.days = it.days || '';
+  const chk = document.createElement('span');
+  chk.className = 'chk'; chk.textContent = '✓';
+  const txt = document.createElement('span');
+  txt.className = 'p-text'; txt.textContent = it.text || '';
+  const days = document.createElement('span');
+  days.className = 'p-days'; days.textContent = it.days || '';
+  row.appendChild(chk); row.appendChild(txt); row.appendChild(days);
+  return row;
+}
+
+function updateProg(card) {
+  const items = card.querySelectorAll('.plan-item').length;
+  const done = card.querySelectorAll('.plan-item.done').length;
+  card.querySelector('.fill').style.width = (items ? Math.round(done / items * 100) : 0) + '%';
+  const lab = card.querySelector('.label');
+  lab.className = 'label' + (items && done === items ? ' fin' : '');
+  lab.textContent = items
+    ? (done === items ? '🎉 全部完成！坚持就是胜利喵~' : '已完成 ' + done + ' / ' + items + ' 项，继续加油喵~')
+    : '';
+}
+
+function renderPlan(plan) {
+  const host = document.getElementById('planList');
+  const old = document.querySelector('.plan-cardx[data-pid="' + plan.id + '"]');
+  if (old) old.remove();
+  planCache.set(plan.id, plan);
+  const card = document.createElement('div');
+  card.className = 'plan-cardx';
+  card.dataset.pid = plan.id;
+  card.dataset.condition = plan.condition || '';
+  card.dataset.summary = plan.summary || '';
+
+  const top = document.createElement('div');
+  top.className = 'pc-top';
+  top.innerHTML = '<div class="pc-title"><span class="ic">📋</span>' + escapeHtml(plan.condition || '健康计划') + '</div>' +
+    '<span class="tag ' + levelTagCls(plan.level || '') + '">' + escapeHtml(plan.level || '自我管理') + '</span>';
+  card.appendChild(top);
+
+  const q = document.createElement('div');
+  q.className = 'pc-q';
+  q.innerHTML = '<b>🧑 当时的问题：</b>' + escapeHtml(plan.question || '') +
+    '<br><span>🕐 创建于 ' + escapeHtml(plan.created_at || '') + '</span>';
+  card.appendChild(q);
+
+  if (plan.summary) {
+    const sum = document.createElement('div');
+    sum.className = 'pc-sum';
+    sum.textContent = plan.summary;
+    card.appendChild(sum);
+  }
+
+  const itemsBox = document.createElement('div');
+  itemsBox.className = 'items';
+  (plan.items || []).forEach(it => itemsBox.appendChild(buildItemRow(it)));
+  card.appendChild(itemsBox);
+
+  const prog = document.createElement('div');
+  prog.className = 'plan-progress';
+  prog.innerHTML = '<div class="bar"><div class="fill"></div></div><div class="label"></div>';
+  card.appendChild(prog);
+  updateProg(card);
+
+  if (plan.dangers && plan.dangers.length) {
+    const d = document.createElement('div');
+    d.className = 'danger';
+    d.innerHTML = '<div class="d-h">🚨 出现以下情况请及时就医</div><ul>' +
+      plan.dangers.map(x => '<li>' + escapeHtml(x) + '</li>').join('') + '</ul>';
+    card.appendChild(d);
+  }
+  if (plan.timeline && plan.timeline.length) {
+    const tl = document.createElement('div');
+    tl.className = 'tl';
+    tl.innerHTML = '<div class="t-h">🗓️ 随访与复查节奏</div>' + plan.timeline.map(t =>
+      '<div class="tl-item"><span class="when">' + escapeHtml(t.when) + '</span>' +
+      '<span class="what">' + escapeHtml(t.what) + '</span></div>').join('');
+    card.appendChild(tl);
+  }
+
+  // 操作按钮
+  const acts = document.createElement('div');
+  acts.className = 'pc-acts';
+  const edBtn = document.createElement('button');
+  edBtn.className = 'pbtn good';
+  edBtn.textContent = '✏️ 编辑';
+  edBtn.onclick = () => enterEdit(card);
+  const delBtn = document.createElement('button');
+  delBtn.className = 'pbtn bad';
+  delBtn.textContent = '🗑️ 删除计划';
+  delBtn.onclick = () => delPlan(plan.id);
+  acts.appendChild(edBtn);
+  acts.appendChild(delBtn);
+  card.appendChild(acts);
+
+  // 打卡（编辑态不响应）
+  card.addEventListener('click', (e) => {
+    if (card.classList.contains('editing')) return;
+    const it = e.target.closest('.plan-item');
+    if (it) toggleItem(card, it);
+  });
+  host.appendChild(card);
+}
+
+/* ===== 打卡 ===== */
+function collectCard(card) {
+  const base = planCache.get(Number(card.dataset.pid)) || {};
+  const condEl = card.querySelector('.pe-title');
+  const sumEl = card.querySelector('.pe-summary');
+  const items = [...card.querySelectorAll('.plan-item')].map(el => {
+    const tIn = el.querySelector('.pe-input');
+    const dIn = el.querySelector('.days-ed');
+    return {
+      text: (tIn ? tIn.value : el.dataset.text || '').trim(),
+      days: (dIn ? dIn.value : el.dataset.days || '').trim(),
+      done: el.classList.contains('done')
+    };
+  }).filter(i => i.text);
+  return {
+    condition: (condEl ? condEl.value : card.dataset.condition || '').trim() || base.condition || '',
+    summary: (sumEl ? sumEl.value : card.dataset.summary || '').trim() || base.summary || '',
+    level: base.level || '自我管理',
+    dangers: base.dangers || [],
+    timeline: base.timeline || [],
+    items: items
+  };
+}
+
+async function persist(card, silent) {
+  const pid = Number(card.dataset.pid);
+  const body = collectCard(card);
+  try {
+    const res = await fetch('/plans/' + pid, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.ok && data.plan) {
+      planCache.set(pid, data.plan);
+      // 同步列表摘要（进度条）
+      const item = currentPlans.find(p => p.id === pid);
+      if (item) {
+        item.total = data.plan.items.length;
+        item.done = data.plan.items.filter(i => i.done).length;
+        item.progress = item.total ? Math.round(item.done / item.total * 100) : 0;
+        countStat();
+      }
+      return true;
+    }
+    if (!silent) alert('保存失败喵：' + (data.error || res.status));
+    return false;
+  } catch (e) {
+    if (!silent) alert('保存失败喵：' + e);
+    return false;
+  }
+}
+
+async function toggleItem(card, it) {
+  it.classList.toggle('done');
+  updateProg(card);
+  await persist(card, true);
+  countStat();
+}
+
+/* ===== 编辑 ===== */
+function enterEdit(card) {
+  if (card.classList.contains('editing')) return;
+  card.classList.add('editing');
+  const top = card.querySelector('.pc-top');
+  const tEl = top.querySelector('.pc-title');
+  const ti = document.createElement('input');
+  ti.className = 'pe-input pe-title';
+  ti.value = tEl.textContent.replace(/^📋/, '').trim();
+  tEl.replaceWith(ti);
+  // 隐藏 tag、摘要变输入框
+  const tag = top.querySelector('.tag');
+  if (tag) tag.style.display = 'none';
+  let sum = card.querySelector('.pc-sum');
+  const si = document.createElement('input');
+  si.className = 'pe-input pe-summary';
+  si.value = sum ? sum.textContent.trim() : '';
+  si.placeholder = '计划摘要（可留空）';
+  if (sum) sum.replaceWith(si);
+  else card.insertBefore(si, card.querySelector('.items'));
+  // 每行转输入框
+  card.querySelectorAll('.plan-item').forEach(row => {
+    row.classList.add('editing');
+    const txt = row.querySelector('.p-text');
+    const tIn = document.createElement('input');
+    tIn.className = 'pe-input';
+    tIn.value = row.dataset.text || '';
+    txt.replaceWith(tIn);
+    const days = row.querySelector('.p-days');
+    const dIn = document.createElement('input');
+    dIn.className = 'days-ed';
+    dIn.value = row.dataset.days || '';
+    dIn.placeholder = '时段';
+    days.replaceWith(dIn);
+    const del = document.createElement('button');
+    del.className = 'del-x';
+    del.textContent = '✕';
+    del.title = '删除这一条';
+    del.onclick = () => row.remove();
+    row.appendChild(del);
+    row.style.cursor = 'default';
+  });
+  // 添加行动项行
+  const addRow = document.createElement('div');
+  addRow.className = 'add-row';
+  const ai = document.createElement('input');
+  ai.className = 'pe-input';
+  ai.placeholder = '➕ 添加新的行动项，如：每晚 10 点前睡觉（填好按回车）';
+  const go = document.createElement('button');
+  go.className = 'pbtn good';
+  go.textContent = '添加';
+  go.onclick = () => addEditRow(ai, card);
+  ai.addEventListener('keydown', e => { if (e.key === 'Enter') go.click(); });
+  addRow.appendChild(ai);
+  addRow.appendChild(go);
+  card.appendChild(addRow);
+  // 操作按钮换保存/取消
+  const acts = card.querySelector('.pc-acts');
+  acts.innerHTML = '';
+  const save = document.createElement('button');
+  save.className = 'pbtn good';
+  save.textContent = '💾 保存修改';
+  save.onclick = async () => {
+    save.disabled = true;
+    save.textContent = '⏳ 保存中…';
+    const ok = await persist(card, false);
+    if (ok) { const fresh = planCache.get(Number(card.dataset.pid)); renderPlan(fresh); }
+    else { save.disabled = false; save.textContent = '💾 保存修改'; }
+  };
+  const cancel = document.createElement('button');
+  cancel.className = 'pbtn';
+  cancel.textContent = '↩️ 取消';
+  cancel.onclick = () => renderPlan(planCache.get(Number(card.dataset.pid)));
+  acts.appendChild(save);
+  acts.appendChild(cancel);
+}
+
+function addEditRow(ai, card) {
+  const v = ai.value.trim();
+  if (!v) return;
+  ai.value = '';
+  const row = document.createElement('div');
+  row.className = 'plan-item editing';
+  const chk = document.createElement('span');
+  chk.className = 'chk'; chk.textContent = '✓';
+  const tIn = document.createElement('input');
+  tIn.className = 'pe-input'; tIn.value = v;
+  const dIn = document.createElement('input');
+  dIn.className = 'days-ed'; dIn.placeholder = '时段';
+  const del = document.createElement('button');
+  del.className = 'del-x'; del.textContent = '✕';
+  del.onclick = () => row.remove();
+  row.appendChild(chk); row.appendChild(tIn); row.appendChild(dIn); row.appendChild(del);
+  card.querySelector('.items').appendChild(row);
+  ai.focus();
+}
+
+/* ===== 删除 ===== */
+async function delPlan(pid) {
+  if (!confirm('确定删除这条护理计划吗？删除后不可恢复喵~')) return;
+  try {
+    const res = await fetch('/plans/' + pid, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.ok) {
+      planCache.delete(pid);
+      currentPlans = currentPlans.filter(p => p.id !== pid);
+      renderAll();
+    } else alert(data.error || '删除失败');
+  } catch (e) { alert('删除失败喵：' + e); }
+}
+
+/* ===== 加载/列表 ===== */
+async function loadAll() {
+  try {
+    const res = await fetch('/plans');
+    const data = await res.json();
+    currentPlans = data.plans || [];
+    renderAll();
+  } catch (e) {
+    document.getElementById('pageLoadTip').textContent = '加载失败喵：' + e;
+  }
+}
+
+function renderAll() {
+  document.getElementById('pageLoadTip').style.display = 'none';
+  document.getElementById('statsRow').style.display = currentPlans.length ? 'flex' : 'none';
+  document.getElementById('footNote').style.display = currentPlans.length ? '' : 'none';
+  const host = document.getElementById('planList');
+  host.innerHTML = '';
+  if (!currentPlans.length) {
+    host.innerHTML = '<div class="empty"><span class="big">🐱</span>' +
+      '还没有生成过护理计划喵～<br>先去问答页问个健康问题，然后点回答下方的' +
+      '<br><a href="/">✨ 护理计划 按钮去生成吧</a></div>';
+    return;
+  }
+  // 逐个拉详情（列表接口只有摘要），Promise.all 保序渲染
+  Promise.all(currentPlans.map(p =>
+    fetch('/plans/' + p.id).then(r => r.json()).catch(() => null)
+  )).then(list => {
+    list.forEach(full => { if (full && !full.error) renderPlan(full); });
+    countStat();
+  });
+}
+
+/* ===== donut ===== */
+const donutEl = document.getElementById('donutBox');
+const donutChart = echarts.init(donutEl);
+donutChart.setOption({
+  tooltip: { show: false },
+  series: [{
+    type: 'pie', radius: ['62%', '82%'], center: ['50%', '50%'],
+    label: { show: true, position: 'center', formatter: '{d}%',
+      fontSize: 18, fontWeight: 800, color: '#e2e8f0' },
+    data: [{ value: 0, itemStyle: { color: '#10b981' } },
+           { value: 100, itemStyle: { color: '#1e2a4a' } }]
+  }]
+});
+window.addEventListener('resize', () => donutChart.resize());
+loadAll();
+</script>
+</body>
+</html>
