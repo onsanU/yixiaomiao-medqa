@@ -22,7 +22,7 @@ BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 app = FastAPI(
     title="医小喵 API",
-    description="医疗健康智能问答助手（RAG + Qwen2.5 本地部署）",
+    description="医疗健康智能问答助手（RAG + Qwen3.5 4B 本地部署）",
     version="0.3.0",
 )
 
